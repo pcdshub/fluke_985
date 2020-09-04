@@ -1,6 +1,5 @@
 import itertools
-import pathlib
-from typing import Dict, Tuple, Union
+from typing import Dict, TextIO, Tuple
 
 import pandas as pd
 
@@ -15,16 +14,14 @@ ALARM_KEYS = (
 )
 
 
-def load_fluke_data_file(
-        fn: Union[str, pathlib.Path]
-        ) -> Tuple[Dict[str, str], pd.DataFrame]:
+def load_fluke_data_file(fp: TextIO) -> Tuple[Dict[str, str], pd.DataFrame]:
     """
     Load a fluke 985 tab-delimited data file.
 
     Parameters
     ----------
-    fn : str or pathlib.Path
-        The data file name, e.g., ``'data.tsv'``.
+    fp : file-like object
+        The data file.
 
     Returns
     -------
@@ -45,9 +42,10 @@ def load_fluke_data_file(
         ... Counts normalized to concentration mode volume ...
         {table}
     """
-    last_md_line, metadata = _get_metadata(fn)
+    last_md_line, metadata = _get_metadata(fp)
+    fp.seek(0)
     df = pd.read_csv(
-        fn,
+        fp,
         skiprows=last_md_line + 1,
         delimiter='\t',
         parse_dates=[['Date', 'Time']],
@@ -56,14 +54,14 @@ def load_fluke_data_file(
     return metadata, df
 
 
-def _get_metadata(fn: Union[str, pathlib.Path]) -> Tuple[int, Dict[str, str]]:
+def _get_metadata(fp: TextIO) -> Tuple[int, Dict[str, str]]:
     """
     Load metadata from a fluke 985 tab-delimited data file.
 
     Parameters
     ----------
-    fn : str or pathlib.Path
-        The data file name, e.g., ``'data.tsv'``.
+    fp : file-like object
+        The data file.
 
     Returns
     -------
@@ -76,15 +74,15 @@ def _get_metadata(fn: Union[str, pathlib.Path]) -> Tuple[int, Dict[str, str]]:
     """
     metadata = {}
     last_md_line = 0
-    with open(fn, 'rt') as f:
-        for line_number in itertools.count(start=1):
-            line = f.readline().strip()
-            if ':' not in line:
-                last_md_line = line_number
-                break
+    fp.seek(0)
+    for line_number in itertools.count(start=1):
+        line = fp.readline().strip()
+        if ':' not in line:
+            last_md_line = line_number
+            break
 
-            key, value = line.split(':', 1)
-            metadata[key.strip()] = value.strip()
+        key, value = line.split(':', 1)
+        metadata[key.strip()] = value.strip()
 
     return last_md_line, metadata
 

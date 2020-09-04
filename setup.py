@@ -61,7 +61,7 @@ setup(
         'fluke_985': [
             # When adding files here, remember to update MANIFEST.in as well,
             # or else they will not be included in the distribution on PyPI!
-            # 'path/to/data_file',
+            'sample_data.tsv',
             ]
         },
     install_requires=requirements,

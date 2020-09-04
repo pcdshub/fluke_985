@@ -1,3 +1,4 @@
+import io
 import pathlib
 import time
 
@@ -15,8 +16,8 @@ class Fluke985Base(PVGroup):
 
     Parameters
     ----------
-    host : str
-        Fluke 985 device hostname or IP address.
+    host : Tuple[str, int]
+        Fluke 985 device hostname or IP address and port.
 
     prefix : str
         Prefix for all PVs in the group.
@@ -40,9 +41,17 @@ class Fluke985Base(PVGroup):
         record='stringin',
     )
 
+    port = pvproperty(
+        value=80,
+        name='Port',
+        read_only=True,
+        record='longin',
+    )
+
     @host.startup
     async def host(self, instance, async_lib):
-        await self.host.write(self._default_host)
+        await self.host.write(self._default_host[0])
+        await self.port.write(self._default_host[1])
 
     model_number = pvproperty(
         value='',
@@ -369,7 +378,6 @@ class Fluke985Base(PVGroup):
         doc='Laser alarm',
         alarm_group='laser_alarm',
     )
-    update_hook = pvproperty(value=0, name='__update_hook__', read_only=True)
 
     _metadata_to_property = {
         'Model Number': model_number,
@@ -408,9 +416,9 @@ class Fluke985Base(PVGroup):
         'Battery Alarm': battery_alarm,
         'Laser Alarm': laser_alarm,
         # Custom
-        # 'Sample Units': ,
-        # overall_alarm
-        # 'Sample Period': sample_period,
+        # Sample Units
+        # Sample Period
+        # overall_alarm (custom)
     }
 
     async def _write_metadata(self,
@@ -424,10 +432,30 @@ class Fluke985Base(PVGroup):
         if pvprop.value != value:
             await pvprop.write(value=value, timestamp=timestamp)
 
+    async def _query_data_file(self):
+        data_text = await comm.get_data_file(host=self.host.value,
+                                             port=self.port.value)
+        strio = io.StringIO(data_text)
+        return data.load_fluke_data_file(strio)
+
+    update_hook = pvproperty(
+        value=0,
+        name='__update_hook__',
+        read_only=True
+    )
+
     @update_hook.startup
     async def update_hook(self, instance, async_lib):
-        metadata, df = data.load_fluke_data_file('data.tsv')
-        # TODO if fail to connect, AlarmStatus.LINK
+        try:
+            metadata, df = await self._query_data_file()
+        except Exception:
+            for key, alarm in self.alarms.items():
+                if key is not None:
+                    await alarm.write(
+                        status=AlarmStatus.COMM,
+                        severity=AlarmSeverity.MAJOR_ALARM,
+                    )
+            return
 
         timestamp = time.time()
         for key, pvprop in self._metadata_to_property.items():
@@ -551,6 +579,13 @@ def main():
     )
 
     parser.add_argument(
+        '--port',
+        help='Port to connect to (mostly for debugging)',
+        default=80,
+        type=int
+    )
+
+    parser.add_argument(
         '--autosave',
         help='Path to the autosave file',
         default='autosave.json',
@@ -560,7 +595,8 @@ def main():
     args = parser.parse_args()
     ioc_options, run_options = split_args(args)
 
-    ioc = create_ioc(autosave=args.autosave, host=args.host, **ioc_options)
+    ioc = create_ioc(autosave=args.autosave, host=(args.host, args.port),
+                     **ioc_options)
     if args.verbose is None or args.verbose == 0:
         log_level = 'INFO'
     else:
