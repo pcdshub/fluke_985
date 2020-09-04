@@ -64,7 +64,7 @@ class Fluke985Base(PVGroup):
         value=0.0,
         read_only=True,
         record='ai',
-        units='L',  # TODO update by key
+        units='L',
         alarm_group='sample_volume',
     )
 
@@ -436,9 +436,11 @@ class Fluke985Base(PVGroup):
         try:
             units = row['Sample Units']
         except KeyError:
-            ...
+            self.log.exception('Sample Units unavailable?')
         else:
             await self.sample_volume.write_metadata(units=units)
+            await self.sample_volume.field_inst.engineering_units.write(
+                value=value)
 
         try:
             await self.sample_period.write(
