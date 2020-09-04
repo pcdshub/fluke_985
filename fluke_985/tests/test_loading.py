@@ -20,7 +20,7 @@ def test_load(data_filename):
 
     assert metadata['Model Number'] == '985'
     timestamp, row = list(data.iterrows())[-1]
-    assert timestamp == datetime.datetime.fromisoformat('2020-08-25 09:53:31')
+    assert timestamp == datetime.datetime(2020, 8, 25, 9, 53, 31)
     assert row['Sample Period'] == '00:15:00'
     # Lots o' data
     assert len(row) == 29
