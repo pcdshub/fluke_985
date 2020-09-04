@@ -1,0 +1,5 @@
+caproto>=0.6.0
+ipython
+numpy
+pandas
+aiohttp
