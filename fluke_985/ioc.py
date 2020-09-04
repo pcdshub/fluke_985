@@ -6,10 +6,44 @@ from caproto.server import (PVGroup, SubGroup, pvproperty, run,
                             template_arg_parser)
 from caproto.server.autosave import AutosaveHelper, RotatingFileManager
 
-from . import data, util
+from . import comm, data, util  # noqa
 
 
 class Fluke985Base(PVGroup):
+    """
+    Base class for the Fluke985 IOC.
+
+    Parameters
+    ----------
+    host : str
+        Fluke 985 device hostname or IP address.
+
+    prefix : str
+        Prefix for all PVs in the group.
+
+    macros : dict, optional
+        Dictionary of macro name to value.
+
+    name : str, optional
+        Name for the group, defaults to the class name.
+    """
+
+    def __init__(self, *args, host, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._default_host = host
+
+    host = pvproperty(
+        value='',
+        max_length=60,
+        name='Host',
+        read_only=True,
+        record='stringin',
+    )
+
+    @host.startup
+    async def host(self, instance, async_lib):
+        await self.host.write(self._default_host)
+
     model_number = pvproperty(
         value='',
         max_length=40,
@@ -463,6 +497,7 @@ class Fluke985Base(PVGroup):
 
 
 def create_ioc(prefix: str, *,
+               host: str,
                autosave: str,
                **ioc_options) -> Fluke985Base:
     """
@@ -472,6 +507,9 @@ def create_ioc(prefix: str, *,
     ----------
     prefix : str
         The IOC prefix.
+
+    host : str
+        IP or hostname of the Fluke 985 to connect to.
 
     autosave : str or pathlib.Path
         Path for autosave settings (JSON format).
@@ -493,6 +531,7 @@ def create_ioc(prefix: str, *,
 
     return Fluke985Main(
         prefix=prefix,
+        host=host,
         **ioc_options
     )
 
@@ -505,6 +544,13 @@ def main():
     )
 
     parser.add_argument(
+        '--host',
+        help='Hostname or IP of the Fluke 985',
+        required=True,
+        type=str
+    )
+
+    parser.add_argument(
         '--autosave',
         help='Path to the autosave file',
         default='autosave.json',
@@ -514,7 +560,7 @@ def main():
     args = parser.parse_args()
     ioc_options, run_options = split_args(args)
 
-    ioc = create_ioc(autosave=args.autosave, **ioc_options)
+    ioc = create_ioc(autosave=args.autosave, host=args.host, **ioc_options)
     if args.verbose is None or args.verbose == 0:
         log_level = 'INFO'
     else:
