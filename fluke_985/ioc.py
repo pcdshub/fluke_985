@@ -1,11 +1,12 @@
 import pathlib
+import time
 
+from caproto import AlarmSeverity, AlarmStatus
 from caproto.server import (PVGroup, SubGroup, pvproperty, run,
                             template_arg_parser)
 from caproto.server.autosave import AutosaveHelper, RotatingFileManager
 
-from . import util
-from .data import load_fluke_data_file
+from . import data, util
 
 
 class Fluke985Base(PVGroup):
@@ -55,6 +56,7 @@ class Fluke985Base(PVGroup):
         read_only=True,
         record='longin',
         units='sec',
+        alarm_group='sample_period',
     )
 
     sample_volume = pvproperty(
@@ -63,6 +65,7 @@ class Fluke985Base(PVGroup):
         read_only=True,
         record='ai',
         units='L',  # TODO update by key
+        alarm_group='sample_volume',
     )
 
     count_mode = pvproperty(
@@ -71,6 +74,7 @@ class Fluke985Base(PVGroup):
         max_length=40,
         read_only=True,
         record='stringin',
+        alarm_group='count_mode',
     )
 
     concentration_mode = pvproperty(
@@ -79,6 +83,7 @@ class Fluke985Base(PVGroup):
         max_length=40,
         read_only=True,
         record='stringin',
+        alarm_group='concentration_mode',
     )
 
     norm_0_3um = pvproperty(
@@ -88,6 +93,7 @@ class Fluke985Base(PVGroup):
         record='ai',
         units='',
         doc='0.3um Normalized to conc. mode volume',
+        alarm_group='norm_0_3um',
     )
 
     norm_0_5um = pvproperty(
@@ -97,6 +103,7 @@ class Fluke985Base(PVGroup):
         record='ai',
         units='',
         doc='0.5um Normalized to conc. mode volume',
+        alarm_group='norm_0_5um',
     )
 
     norm_1_0um = pvproperty(
@@ -106,6 +113,7 @@ class Fluke985Base(PVGroup):
         record='ai',
         units='',
         doc='1.0um Normalized to conc. mode volume',
+        alarm_group='norm_1_0um',
     )
 
     norm_2_0um = pvproperty(
@@ -115,6 +123,7 @@ class Fluke985Base(PVGroup):
         record='ai',
         units='',
         doc='2.0um Normalized to conc. mode volume',
+        alarm_group='norm_2_0um',
     )
 
     norm_5_0um = pvproperty(
@@ -124,6 +133,7 @@ class Fluke985Base(PVGroup):
         record='ai',
         units='',
         doc='5.0um Normalized to conc. mode volume',
+        alarm_group='norm_5_0um',
     )
 
     norm_10_0um = pvproperty(
@@ -133,6 +143,7 @@ class Fluke985Base(PVGroup):
         record='ai',
         units='',
         doc='10.0um Normalized to conc. mode volume',
+        alarm_group='norm_10_0um',
     )
 
     sample_mode = pvproperty(
@@ -142,6 +153,7 @@ class Fluke985Base(PVGroup):
         read_only=True,
         record='stringin',
         doc='Sample mode (e.g., Automatic)',
+        alarm_group='sample_mode',
     )
 
     location_name = pvproperty(
@@ -151,6 +163,7 @@ class Fluke985Base(PVGroup):
         read_only=True,
         record='stringin',
         doc='Configured location name on device',
+        alarm_group='location_name',
     )
 
     sample_number = pvproperty(
@@ -160,6 +173,7 @@ class Fluke985Base(PVGroup):
         record='longin',
         units='',
         doc='Sample number index',
+        alarm_group='sample_number',
     )
 
     laser_current = pvproperty(
@@ -169,6 +183,7 @@ class Fluke985Base(PVGroup):
         record='ai',
         units='mA',
         doc='',
+        alarm_group='laser_current',
     )
 
     calibrated_value = pvproperty(
@@ -178,6 +193,7 @@ class Fluke985Base(PVGroup):
         record='ai',
         units='',
         doc='',
+        alarm_group='calibrated_value',
     )
 
     raw_0_3um = pvproperty(
@@ -187,6 +203,7 @@ class Fluke985Base(PVGroup):
         record='ai',
         units='',
         doc='0.3um cumulative raw counts',
+        alarm_group='raw_0_3um',
     )
 
     raw_0_5um = pvproperty(
@@ -196,6 +213,7 @@ class Fluke985Base(PVGroup):
         record='ai',
         units='',
         doc='0.5um cumulative raw counts',
+        alarm_group='raw_0_5um',
     )
 
     raw_1_0um = pvproperty(
@@ -205,6 +223,7 @@ class Fluke985Base(PVGroup):
         record='ai',
         units='',
         doc='1.0um cumulative raw counts',
+        alarm_group='raw_1_0um',
     )
 
     raw_2_0um = pvproperty(
@@ -214,6 +233,7 @@ class Fluke985Base(PVGroup):
         record='ai',
         units='',
         doc='2.0um cumulative raw counts',
+        alarm_group='raw_2_0um',
     )
 
     raw_5_0um = pvproperty(
@@ -223,6 +243,7 @@ class Fluke985Base(PVGroup):
         record='ai',
         units='',
         doc='5.0um cumulative raw counts',
+        alarm_group='raw_5_0um',
     )
 
     raw_10_0um = pvproperty(
@@ -232,6 +253,7 @@ class Fluke985Base(PVGroup):
         record='ai',
         units='',
         doc='10.0um cumulative raw counts',
+        alarm_group='raw_10_0um',
     )
 
     overall_alarm = pvproperty(
@@ -241,6 +263,7 @@ class Fluke985Base(PVGroup):
         record='longin',
         units='',
         doc='Summed alarm status (cal, flow, etc.)',
+        alarm_group='overall_alarm',
     )
 
     cal_alarm = pvproperty(
@@ -250,6 +273,7 @@ class Fluke985Base(PVGroup):
         record='longin',
         units='',
         doc='Calibration alarm',
+        alarm_group='cal_alarm',
     )
 
     flow_alarm = pvproperty(
@@ -259,6 +283,7 @@ class Fluke985Base(PVGroup):
         record='longin',
         units='',
         doc='Flow alarm',
+        alarm_group='flow_alarm',
     )
 
     over_conc_alarm = pvproperty(
@@ -268,6 +293,7 @@ class Fluke985Base(PVGroup):
         record='longin',
         units='',
         doc='Over concentration alarm',
+        alarm_group='over_conc_alarm',
     )
 
     system_alarm = pvproperty(
@@ -277,6 +303,7 @@ class Fluke985Base(PVGroup):
         record='longin',
         units='',
         doc='System alarm',
+        alarm_group='system_alarm',
     )
 
     count_alarm = pvproperty(
@@ -286,6 +313,7 @@ class Fluke985Base(PVGroup):
         record='longin',
         units='',
         doc='Count alarm',
+        alarm_group='count_alarm',
     )
 
     battery_alarm = pvproperty(
@@ -295,6 +323,7 @@ class Fluke985Base(PVGroup):
         record='longin',
         units='',
         doc='Battery alarm',
+        alarm_group='battery_alarm',
     )
 
     laser_alarm = pvproperty(
@@ -304,6 +333,7 @@ class Fluke985Base(PVGroup):
         record='longin',
         units='',
         doc='Laser alarm',
+        alarm_group='laser_alarm',
     )
     update_hook = pvproperty(value=0, name='__update_hook__', read_only=True)
 
@@ -351,25 +381,43 @@ class Fluke985Base(PVGroup):
 
     async def _write_metadata(self,
                               pvprop: pvproperty,
-                              value: str):
+                              value: str,
+                              timestamp: float):
         """
         Update the metadata, if changed.
         """
         value = value[:pvprop.max_length]
         if pvprop.value != value:
-            await pvprop.write(value=value)
+            await pvprop.write(value=value, timestamp=timestamp)
 
     @update_hook.startup
     async def update_hook(self, instance, async_lib):
-        metadata, df = load_fluke_data_file('data.tsv')
+        metadata, df = data.load_fluke_data_file('data.tsv')
+        # TODO if fail to connect, AlarmStatus.LINK
 
+        timestamp = time.time()
         for key, pvprop in self._metadata_to_property.items():
             await self._write_metadata(
                 pvprop=getattr(self, pvprop.attr_name),
-                value=metadata.get(key, 'unknown')
+                value=metadata.get(key, 'unknown'),
+                timestamp=timestamp,
             )
 
         timestamp, row = list(df.tail().iterrows())[-1]
+
+        try:
+            alarm_summary = data.summarize_alarms(row)
+            await self.overall_alarm.write(value=alarm_summary,
+                                           timestamp=timestamp)
+        except Exception as ex:
+            self.log.exception('Failed to update overall alarm: %s', ex)
+            alarm_summary = 1
+
+        if alarm_summary:
+            status, severity = (AlarmStatus.READ, AlarmSeverity.MAJOR_ALARM)
+        else:
+            status, severity = (AlarmStatus.NO_ALARM, AlarmSeverity.NO_ALARM)
+
         for key, value in row.items():
             try:
                 prop = self._data_key_to_property[key]
@@ -377,7 +425,13 @@ class Fluke985Base(PVGroup):
                 continue
 
             prop = getattr(self, prop.attr_name)
-            await prop.write(value=value)
+            try:
+                await prop.write(value=value, timestamp=timestamp,
+                                 status=status,
+                                 severity=severity)
+            except Exception as ex:
+                self.log.exception('Failed to update key %s=%s: %s', key,
+                                   value, ex)
 
         try:
             units = row['Sample Units']
@@ -386,8 +440,24 @@ class Fluke985Base(PVGroup):
         else:
             await self.sample_volume.write_metadata(units=units)
 
+        try:
+            await self.sample_period.write(
+                value=data.sample_period_to_seconds(row['Sample Period']),
+                timestamp=timestamp,
+            )
+        except Exception as ex:
+            self.log.exception('Failed to update sample period: %s', ex)
+
+        # TODO: caproto alarm handling needs some work
+        # await self.alarms['reading'].write(
+        #     severity=severity,
+        #     status=status,
+        #     publish=True,
+        #     # alarm_string='One or more alarms tripped',
+        # )
+
         # TODO:
-        # row['Sample Period']
+        # and optional e-mail?
 
 
 def create_ioc(prefix: str, *,

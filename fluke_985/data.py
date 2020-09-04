@@ -4,6 +4,16 @@ from typing import Dict, Tuple, Union
 
 import pandas as pd
 
+ALARM_KEYS = (
+    'Cal Alarm',
+    'Flow Alarm',
+    'Over Conc. Alarm',
+    'System Alarm',
+    'Count Alarm',
+    'Battery Alarm',
+    'Laser Alarm'
+)
+
 
 def load_fluke_data_file(
         fn: Union[str, pathlib.Path]
@@ -77,3 +87,39 @@ def _get_metadata(fn: Union[str, pathlib.Path]) -> Tuple[int, Dict[str, str]]:
             metadata[key.strip()] = value.strip()
 
     return last_md_line, metadata
+
+
+def sample_period_to_seconds(sample_period: str) -> int:
+    """
+    Convert the sample period to seconds.
+
+    Parameters
+    ----------
+    sample_period : str
+        A sample period reading from the data file.
+
+    Returns
+    -------
+    sample_period int
+        Sample period in seconds.
+    """
+    hours, minutes, seconds = sample_period.split(':')
+    return 3600 * int(hours) + 60 * int(minutes) + int(seconds)
+
+
+def summarize_alarms(row) -> int:
+    """
+    Summarize alarm status from a given row.
+
+    Parameters
+    ----------
+    row : pandas.Series
+        The row from the dataframe.
+
+    Returns
+    -------
+    summary : int
+        An alarm value of zero is considered NO_ALARM, whereas a non-zero alarm
+        value is considered MAJOR.
+    """
+    return max(row[key] for key in ALARM_KEYS)
