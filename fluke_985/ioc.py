@@ -564,7 +564,7 @@ def create_ioc(prefix: str, *,
     )
 
 
-def main():
+def create_parser():
     parser, split_args = template_arg_parser(
         default_prefix='TEST:FLUKE:985:',
         desc='Fluke 985 particle counter IOC',
@@ -591,12 +591,19 @@ def main():
         default='autosave.json',
         type=str
     )
+    return parser, split_args
 
+
+def main():
+    parser, split_args = create_parser()
     args = parser.parse_args()
     ioc_options, run_options = split_args(args)
 
-    ioc = create_ioc(autosave=args.autosave, host=(args.host, args.port),
-                     **ioc_options)
+    ioc = create_ioc(
+        autosave=args.autosave,
+        host=(args.host, args.port),
+        **ioc_options
+    )
     if args.verbose is None or args.verbose == 0:
         log_level = 'INFO'
     else:
