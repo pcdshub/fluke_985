@@ -1,0 +1,11 @@
+[run]
+source =
+    fluke_985
+[report]
+omit =
+    #versioning
+    .*version.*
+    *_version.py
+    #tests
+    *test*
+    fluke_985/tests/*

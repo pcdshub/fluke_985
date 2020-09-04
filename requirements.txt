@@ -3,3 +3,4 @@ ipython
 numpy
 pandas
 aiohttp
+versioneer
