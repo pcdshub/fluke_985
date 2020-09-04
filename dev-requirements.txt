@@ -12,3 +12,4 @@ sphinx-copybutton
 sphinx_rtd_theme
 doctr
 recommonmark
+doctr-versions-menu
