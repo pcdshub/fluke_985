@@ -17,10 +17,9 @@ requirements:
       - setuptools
     run:
       - python >=3.6
-      - caproto>=0.6.0
+      - caproto >=0.6.0
       - pandas
-      - aiohttp[speedups]
-      - versioneer
+      - aiohttp
 
 test:
     imports:
