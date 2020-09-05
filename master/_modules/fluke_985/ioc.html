@@ -1,0 +1,821 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>fluke_985.ioc &mdash; fluke_985  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+        <script src="../../_static/doctr-versions-menu.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home" alt="Documentation Home"> fluke_985
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pcdshub/fluke_985">Github Repository</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">fluke_985</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>fluke_985.ioc</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for fluke_985.ioc</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">from</span> <span class="nn">caproto</span> <span class="kn">import</span> <span class="n">AlarmSeverity</span><span class="p">,</span> <span class="n">AlarmStatus</span>
+<span class="kn">from</span> <span class="nn">caproto.server</span> <span class="kn">import</span> <span class="p">(</span><span class="n">PVGroup</span><span class="p">,</span> <span class="n">SubGroup</span><span class="p">,</span> <span class="n">pvproperty</span><span class="p">,</span> <span class="n">run</span><span class="p">,</span>
+                            <span class="n">template_arg_parser</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">caproto.server.autosave</span> <span class="kn">import</span> <span class="n">AutosaveHelper</span><span class="p">,</span> <span class="n">RotatingFileManager</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">comm</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">util</span>  <span class="c1"># noqa</span>
+
+
+<div class="viewcode-block" id="Fluke985Base"><a class="viewcode-back" href="../../api.html#fluke_985.ioc.Fluke985Base">[docs]</a><span class="k">class</span> <span class="nc">Fluke985Base</span><span class="p">(</span><span class="n">PVGroup</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for the Fluke985 IOC.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    host : Tuple[str, int]</span>
+<span class="sd">        Fluke 985 device hostname or IP address and port.</span>
+
+<span class="sd">    prefix : str</span>
+<span class="sd">        Prefix for all PVs in the group.</span>
+
+<span class="sd">    macros : dict, optional</span>
+<span class="sd">        Dictionary of macro name to value.</span>
+
+<span class="sd">    name : str, optional</span>
+<span class="sd">        Name for the group, defaults to the class name.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_default_host</span> <span class="o">=</span> <span class="n">host</span>
+
+    <span class="n">host</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Host&#39;</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;stringin&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">port</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">value</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Port&#39;</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;longin&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="nd">@host</span><span class="o">.</span><span class="n">startup</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">host</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">async_lib</span><span class="p">):</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_default_host</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_default_host</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">model_number</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;ModelNumber&#39;</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;stringin&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">serial_number</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;SerialNumber&#39;</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;stringin&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">firmware_version</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;FirmwareVersion&#39;</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;stringin&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">hardware_version</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;HardwareVersion&#39;</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;stringin&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">bootloader_version</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;BootloaderVersion&#39;</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;stringin&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">sample_period</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;SamplePeriod&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;longin&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;sec&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;sample_period&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">sample_volume</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;SampleVolume&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;ai&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;L&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;sample_volume&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">count_mode</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;CountMode&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;stringin&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;count_mode&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">concentration_mode</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;ConcentrationMode&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;stringin&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;concentration_mode&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">norm_0_3um</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Norm0_3um&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;ai&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;0.3um Normalized to conc. mode volume&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;norm_0_3um&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">norm_0_5um</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Norm0_5um&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;ai&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;0.5um Normalized to conc. mode volume&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;norm_0_5um&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">norm_1_0um</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Norm1_0um&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;ai&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;1.0um Normalized to conc. mode volume&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;norm_1_0um&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">norm_2_0um</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Norm2_0um&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;ai&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;2.0um Normalized to conc. mode volume&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;norm_2_0um&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">norm_5_0um</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Norm5_0um&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;ai&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;5.0um Normalized to conc. mode volume&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;norm_5_0um&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">norm_10_0um</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Norm10_0um&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;ai&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;10.0um Normalized to conc. mode volume&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;norm_10_0um&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">sample_mode</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;SampleMode&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;stringin&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Sample mode (e.g., Automatic)&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;sample_mode&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">location_name</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;LocationName&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;stringin&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Configured location name on device&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;location_name&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">sample_number</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;SampleNumber&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;longin&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Sample number index&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;sample_number&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">laser_current</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;LaserCurrent&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;ai&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;mA&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;laser_current&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">calibrated_value</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;CalibratedValue&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;ai&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;calibrated_value&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">raw_0_3um</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Raw0_3um&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;ai&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;0.3um cumulative raw counts&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;raw_0_3um&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">raw_0_5um</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Raw0_5um&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;ai&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;0.5um cumulative raw counts&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;raw_0_5um&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">raw_1_0um</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Raw1_0um&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;ai&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;1.0um cumulative raw counts&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;raw_1_0um&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">raw_2_0um</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Raw2_0um&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;ai&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;2.0um cumulative raw counts&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;raw_2_0um&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">raw_5_0um</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Raw5_0um&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;ai&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;5.0um cumulative raw counts&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;raw_5_0um&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">raw_10_0um</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Raw10_0um&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;ai&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;10.0um cumulative raw counts&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;raw_10_0um&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">overall_alarm</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;OverallAlarm&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;longin&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Summed alarm status (cal, flow, etc.)&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;overall_alarm&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">cal_alarm</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;CalAlarm&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;longin&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Calibration alarm&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;cal_alarm&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">flow_alarm</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;FlowAlarm&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;longin&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Flow alarm&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;flow_alarm&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">over_conc_alarm</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;OverConcAlarm&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;longin&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Over concentration alarm&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;over_conc_alarm&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">system_alarm</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;SystemAlarm&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;longin&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;System alarm&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;system_alarm&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">count_alarm</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;CountAlarm&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;longin&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Count alarm&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;count_alarm&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">battery_alarm</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;BatteryAlarm&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;longin&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Battery alarm&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;battery_alarm&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">laser_alarm</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;LaserAlarm&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;longin&#39;</span><span class="p">,</span>
+        <span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Laser alarm&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;laser_alarm&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">_metadata_to_property</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;Model Number&#39;</span><span class="p">:</span> <span class="n">model_number</span><span class="p">,</span>
+        <span class="s1">&#39;Serial Number&#39;</span><span class="p">:</span> <span class="n">serial_number</span><span class="p">,</span>
+        <span class="s1">&#39;Firmware Version&#39;</span><span class="p">:</span> <span class="n">firmware_version</span><span class="p">,</span>
+        <span class="s1">&#39;Hardware Version&#39;</span><span class="p">:</span> <span class="n">hardware_version</span><span class="p">,</span>
+        <span class="s1">&#39;Bootloader&#39;</span><span class="p">:</span> <span class="n">bootloader_version</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">_data_key_to_property</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;Sample Volume&#39;</span><span class="p">:</span> <span class="n">sample_volume</span><span class="p">,</span>
+        <span class="s1">&#39;Count Mode&#39;</span><span class="p">:</span> <span class="n">count_mode</span><span class="p">,</span>
+        <span class="s1">&#39;Concentration Mode&#39;</span><span class="p">:</span> <span class="n">concentration_mode</span><span class="p">,</span>
+        <span class="s1">&#39;0.3um&#39;</span><span class="p">:</span> <span class="n">norm_0_3um</span><span class="p">,</span>
+        <span class="s1">&#39;0.5um&#39;</span><span class="p">:</span> <span class="n">norm_0_5um</span><span class="p">,</span>
+        <span class="s1">&#39;1.0um&#39;</span><span class="p">:</span> <span class="n">norm_1_0um</span><span class="p">,</span>
+        <span class="s1">&#39;2.0um&#39;</span><span class="p">:</span> <span class="n">norm_2_0um</span><span class="p">,</span>
+        <span class="s1">&#39;5.0um&#39;</span><span class="p">:</span> <span class="n">norm_5_0um</span><span class="p">,</span>
+        <span class="s1">&#39;10.0um&#39;</span><span class="p">:</span> <span class="n">norm_10_0um</span><span class="p">,</span>
+        <span class="s1">&#39;Sample Mode&#39;</span><span class="p">:</span> <span class="n">sample_mode</span><span class="p">,</span>
+        <span class="s1">&#39;Location Name&#39;</span><span class="p">:</span> <span class="n">location_name</span><span class="p">,</span>
+        <span class="s1">&#39;Sample Number&#39;</span><span class="p">:</span> <span class="n">sample_number</span><span class="p">,</span>
+        <span class="s1">&#39;Cal. Value&#39;</span><span class="p">:</span> <span class="n">calibrated_value</span><span class="p">,</span>
+        <span class="s1">&#39;Laser Current&#39;</span><span class="p">:</span> <span class="n">laser_current</span><span class="p">,</span>
+        <span class="s1">&#39;0.3um (Cum. Counts)&#39;</span><span class="p">:</span> <span class="n">raw_0_3um</span><span class="p">,</span>
+        <span class="s1">&#39;0.5um (Cum. Counts)&#39;</span><span class="p">:</span> <span class="n">raw_0_5um</span><span class="p">,</span>
+        <span class="s1">&#39;1.0um (Cum. Counts)&#39;</span><span class="p">:</span> <span class="n">raw_1_0um</span><span class="p">,</span>
+        <span class="s1">&#39;2.0um (Cum. Counts)&#39;</span><span class="p">:</span> <span class="n">raw_2_0um</span><span class="p">,</span>
+        <span class="s1">&#39;5.0um (Cum. Counts)&#39;</span><span class="p">:</span> <span class="n">raw_5_0um</span><span class="p">,</span>
+        <span class="s1">&#39;10.0um (Cum. Counts)&#39;</span><span class="p">:</span> <span class="n">raw_10_0um</span><span class="p">,</span>
+        <span class="s1">&#39;Cal Alarm&#39;</span><span class="p">:</span> <span class="n">cal_alarm</span><span class="p">,</span>
+        <span class="s1">&#39;Flow Alarm&#39;</span><span class="p">:</span> <span class="n">flow_alarm</span><span class="p">,</span>
+        <span class="s1">&#39;Over Conc. Alarm&#39;</span><span class="p">:</span> <span class="n">over_conc_alarm</span><span class="p">,</span>
+        <span class="s1">&#39;System Alarm&#39;</span><span class="p">:</span> <span class="n">system_alarm</span><span class="p">,</span>
+        <span class="s1">&#39;Count Alarm&#39;</span><span class="p">:</span> <span class="n">count_alarm</span><span class="p">,</span>
+        <span class="s1">&#39;Battery Alarm&#39;</span><span class="p">:</span> <span class="n">battery_alarm</span><span class="p">,</span>
+        <span class="s1">&#39;Laser Alarm&#39;</span><span class="p">:</span> <span class="n">laser_alarm</span><span class="p">,</span>
+        <span class="c1"># Custom</span>
+        <span class="c1"># Sample Units</span>
+        <span class="c1"># Sample Period</span>
+        <span class="c1"># overall_alarm (custom)</span>
+    <span class="p">}</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">_write_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                              <span class="n">pvprop</span><span class="p">:</span> <span class="n">pvproperty</span><span class="p">,</span>
+                              <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                              <span class="n">timestamp</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the metadata, if changed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="p">[:</span><span class="n">pvprop</span><span class="o">.</span><span class="n">max_length</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">pvprop</span><span class="o">.</span><span class="n">value</span> <span class="o">!=</span> <span class="n">value</span><span class="p">:</span>
+            <span class="k">await</span> <span class="n">pvprop</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">timestamp</span><span class="o">=</span><span class="n">timestamp</span><span class="p">)</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">_query_data_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">data_text</span> <span class="o">=</span> <span class="k">await</span> <span class="n">comm</span><span class="o">.</span><span class="n">get_data_file</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                                             <span class="n">port</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">strio</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">data_text</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">load_fluke_data_file</span><span class="p">(</span><span class="n">strio</span><span class="p">)</span>
+
+    <span class="n">update_hook</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;__update_hook__&#39;</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+
+    <span class="nd">@update_hook</span><span class="o">.</span><span class="n">startup</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">update_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">async_lib</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">metadata</span><span class="p">,</span> <span class="n">df</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query_data_file</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">alarm</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">alarms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">await</span> <span class="n">alarm</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                        <span class="n">status</span><span class="o">=</span><span class="n">AlarmStatus</span><span class="o">.</span><span class="n">COMM</span><span class="p">,</span>
+                        <span class="n">severity</span><span class="o">=</span><span class="n">AlarmSeverity</span><span class="o">.</span><span class="n">MAJOR_ALARM</span><span class="p">,</span>
+                    <span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">pvprop</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata_to_property</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_write_metadata</span><span class="p">(</span>
+                <span class="n">pvprop</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pvprop</span><span class="o">.</span><span class="n">attr_name</span><span class="p">),</span>
+                <span class="n">value</span><span class="o">=</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">),</span>
+                <span class="n">timestamp</span><span class="o">=</span><span class="n">timestamp</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">timestamp</span><span class="p">,</span> <span class="n">row</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">tail</span><span class="p">()</span><span class="o">.</span><span class="n">iterrows</span><span class="p">())[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">alarm_summary</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">summarize_alarms</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">overall_alarm</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">alarm_summary</span><span class="p">,</span>
+                                           <span class="n">timestamp</span><span class="o">=</span><span class="n">timestamp</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s1">&#39;Failed to update overall alarm: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ex</span><span class="p">)</span>
+            <span class="n">alarm_summary</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">alarm_summary</span><span class="p">:</span>
+            <span class="n">status</span><span class="p">,</span> <span class="n">severity</span> <span class="o">=</span> <span class="p">(</span><span class="n">AlarmStatus</span><span class="o">.</span><span class="n">READ</span><span class="p">,</span> <span class="n">AlarmSeverity</span><span class="o">.</span><span class="n">MAJOR_ALARM</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">status</span><span class="p">,</span> <span class="n">severity</span> <span class="o">=</span> <span class="p">(</span><span class="n">AlarmStatus</span><span class="o">.</span><span class="n">NO_ALARM</span><span class="p">,</span> <span class="n">AlarmSeverity</span><span class="o">.</span><span class="n">NO_ALARM</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">prop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_key_to_property</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">prop</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prop</span><span class="o">.</span><span class="n">attr_name</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">await</span> <span class="n">prop</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">timestamp</span><span class="o">=</span><span class="n">timestamp</span><span class="p">,</span>
+                                 <span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span>
+                                 <span class="n">severity</span><span class="o">=</span><span class="n">severity</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s1">&#39;Failed to update key </span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span>
+                                   <span class="n">value</span><span class="p">,</span> <span class="n">ex</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;Sample Units&#39;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s1">&#39;Sample Units unavailable?&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_volume</span><span class="o">.</span><span class="n">write_metadata</span><span class="p">(</span><span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">)</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_volume</span><span class="o">.</span><span class="n">field_inst</span><span class="o">.</span><span class="n">engineering_units</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_period</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="n">value</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">sample_period_to_seconds</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;Sample Period&#39;</span><span class="p">]),</span>
+                <span class="n">timestamp</span><span class="o">=</span><span class="n">timestamp</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s1">&#39;Failed to update sample period: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ex</span><span class="p">)</span></div>
+
+        <span class="c1"># TODO: caproto alarm handling needs some work</span>
+        <span class="c1"># await self.alarms[&#39;reading&#39;].write(</span>
+        <span class="c1">#     severity=severity,</span>
+        <span class="c1">#     status=status,</span>
+        <span class="c1">#     publish=True,</span>
+        <span class="c1">#     # alarm_string=&#39;One or more alarms tripped&#39;,</span>
+        <span class="c1"># )</span>
+
+        <span class="c1"># TODO:</span>
+        <span class="c1"># and optional e-mail?</span>
+
+
+<div class="viewcode-block" id="create_ioc"><a class="viewcode-back" href="../../api.html#fluke_985.ioc.create_ioc">[docs]</a><span class="k">def</span> <span class="nf">create_ioc</span><span class="p">(</span><span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+               <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+               <span class="n">autosave</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+               <span class="o">**</span><span class="n">ioc_options</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Fluke985Base</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a new Fluke 985 IOC.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    prefix : str</span>
+<span class="sd">        The IOC prefix.</span>
+
+<span class="sd">    host : str</span>
+<span class="sd">        IP or hostname of the Fluke 985 to connect to.</span>
+
+<span class="sd">    autosave : str or pathlib.Path</span>
+<span class="sd">        Path for autosave settings (JSON format).</span>
+
+<span class="sd">    **ioc_options :</span>
+<span class="sd">        Passed to Fluke985Base().</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ioc : Fluke985Main</span>
+<span class="sd">        IOC instance.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">autosave</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">autosave</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">absolute</span><span class="p">()</span>
+
+    <span class="k">class</span> <span class="nc">Fluke985Main</span><span class="p">(</span><span class="n">Fluke985Base</span><span class="p">):</span>
+        <span class="n">autosave_helper</span> <span class="o">=</span> <span class="n">SubGroup</span><span class="p">(</span><span class="n">AutosaveHelper</span><span class="p">,</span>
+                                   <span class="n">file_manager</span><span class="o">=</span><span class="n">RotatingFileManager</span><span class="p">(</span><span class="n">autosave</span><span class="p">))</span>
+        <span class="n">autosave_helper</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">autosave</span>
+
+    <span class="k">return</span> <span class="n">Fluke985Main</span><span class="p">(</span>
+        <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
+        <span class="n">host</span><span class="o">=</span><span class="n">host</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">ioc_options</span>
+    <span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">create_parser</span><span class="p">():</span>
+    <span class="n">parser</span><span class="p">,</span> <span class="n">split_args</span> <span class="o">=</span> <span class="n">template_arg_parser</span><span class="p">(</span>
+        <span class="n">default_prefix</span><span class="o">=</span><span class="s1">&#39;TEST:FLUKE:985:&#39;</span><span class="p">,</span>
+        <span class="n">desc</span><span class="o">=</span><span class="s1">&#39;Fluke 985 particle counter IOC&#39;</span><span class="p">,</span>
+        <span class="n">supported_async_libs</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;asyncio&#39;</span><span class="p">,</span> <span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s1">&#39;--host&#39;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Hostname or IP of the Fluke 985&#39;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s1">&#39;--port&#39;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Port to connect to (mostly for debugging)&#39;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s1">&#39;--autosave&#39;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Path to the autosave file&#39;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;autosave.json&#39;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">parser</span><span class="p">,</span> <span class="n">split_args</span>
+
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">parser</span><span class="p">,</span> <span class="n">split_args</span> <span class="o">=</span> <span class="n">create_parser</span><span class="p">()</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="n">ioc_options</span><span class="p">,</span> <span class="n">run_options</span> <span class="o">=</span> <span class="n">split_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="n">ioc</span> <span class="o">=</span> <span class="n">create_ioc</span><span class="p">(</span>
+        <span class="n">autosave</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">autosave</span><span class="p">,</span>
+        <span class="n">host</span><span class="o">=</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">port</span><span class="p">),</span>
+        <span class="o">**</span><span class="n">ioc_options</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">log_level</span> <span class="o">=</span> <span class="s1">&#39;INFO&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">log_level</span> <span class="o">=</span> <span class="s1">&#39;DEBUG&#39;</span>
+
+    <span class="n">util</span><span class="o">.</span><span class="n">config_logging</span><span class="p">(</span><span class="n">ioc</span><span class="o">.</span><span class="n">log</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">log_level</span><span class="p">)</span>
+    <span class="n">run</span><span class="p">(</span><span class="n">ioc</span><span class="o">.</span><span class="n">pvdb</span><span class="p">,</span> <span class="o">**</span><span class="n">run_options</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, SLAC National Accelerator Laboratory
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
