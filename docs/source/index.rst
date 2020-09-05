@@ -10,6 +10,8 @@ Welcome to fluke_985's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   api
+
 .. toctree::
    :maxdepth: 1
    :caption: Links

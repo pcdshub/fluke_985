@@ -182,3 +182,130 @@ texinfo_documents = [
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
+
+
+import re
+
+from docutils import nodes, statemachine
+from docutils.parsers.rst import Directive, directives
+from sphinx.ext.autosummary import Autosummary, get_documenter
+from sphinx.util.inspect import safe_getattr
+
+html_context = {
+    'css_files': [
+        '_static/theme_overrides.css',  # override wide tables in RTD theme
+    ],
+}
+
+
+class PVGroupSummary(Directive):
+    required_arguments = 1
+    """Number of required directive arguments."""
+
+    optional_arguments = 0
+    """Number of optional arguments after the required arguments."""
+
+    final_argument_whitespace = False
+    """May the final argument contain whitespace?"""
+
+    option_spec = None
+    """Mapping of option names to validator functions."""
+
+    has_content = False
+    """May the directive have content?"""
+
+    option_spec = dict(
+        methods=directives.unchanged,
+        attributes=directives.unchanged
+    )
+
+    def _document_pv_properties(self, cls):
+        table = []
+
+        def add_row(*items):
+            items = iter(items)
+            table.append(f'* - {next(items)}')
+            for item in items:
+                table.append(f'  - {item}')
+
+        add_row(
+            'Attribute',
+            'Information',
+            'PV',
+            'Value',
+            'Notes',
+            'Alarm Group',
+        )
+
+        for attr, prop in sorted(cls._pvs_.items()):
+            pvspec = prop.pvspec
+            if hasattr(pvspec.dtype, '__name__'):
+                data_type = pvspec.dtype.__name__
+            else:
+                data_type = pvspec.dtype
+
+            if pvspec.max_length:
+                data_type = f'{data_type}[{pvspec.max_length}]'
+
+            notes = ', '.join(
+                item for item in (
+                    (pvspec.get and 'getter') or '',
+                    (pvspec.put and 'putter') or '',
+                    (pvspec.startup and 'startup') or '',
+                    (pvspec.shutdown and 'shutdown') or '',
+                    (pvspec.read_only and 'read-only') or '',
+                )
+                if item
+            )
+
+            if prop.record_type:
+                pvname = f'{pvspec.name} ({prop.record_type})'
+            else:
+                pvname = pvspec.name
+
+            add_row(
+                attr,
+                pvspec.doc or '',
+                pvname,
+                f'{data_type} = {pvspec.value}' if pvspec.value else data_type,
+                notes,
+                pvspec.alarm_group or '',
+            )
+
+        table = directives.tables.ListTable(
+            name=cls.__name__,
+            arguments=[f'{cls.__name__} pvproperty summary'],
+            options={
+                'header-rows': 1,
+                'stub-columns': 0,
+                # 'width': directives.length_or_percentage_or_unitless,
+                'widths': 'auto',
+                # 'class': directives.class_option,
+                # 'name': directives.unchanged,
+                'align': 'left',
+            },
+            content=statemachine.StringList(statemachine.StringList(table)),
+            lineno=self.lineno,
+            content_offset=self.content_offset,
+            block_text=self.block_text,
+            state=self.state,
+            state_machine=self.state_machine,
+        )
+        return table.run()
+
+    def run(self):
+        class_name = self.arguments[0]
+        module_name, class_name = class_name.rsplit('.', 1)
+        module = __import__(module_name, globals(), locals(), [class_name])
+        cls = getattr(module, class_name)
+        assert hasattr(cls, '_pvs_'), 'Not a PVGroup'
+        return self._document_pv_properties(cls)
+
+
+def skip_pvproperties(app, what, name, obj, skip, options):
+    return skip or type(obj).__name__ == 'pvproperty'
+
+
+def setup(app):
+    app.add_directive('pvgroup', PVGroupSummary)
+    app.connect('autodoc-skip-member', skip_pvproperties)
