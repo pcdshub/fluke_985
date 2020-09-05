@@ -2,8 +2,8 @@ version: ~> 1.0
 
 env:
   global:
-    # doctr generated secure variable for documentation upload
-    - secure: "<your secure here>"
+    # Doctr deploy key for pcdshub/fluke_985
+    - secure: "BCFHwHCn0vea+5CG4oFcjgKG2uwQFQeBsyY05IlgkxAIgV8Y54lmKQtKaGi5O/ekSd5VUHOtz+R8o8xmNlvIkgGP+dQLU6vBXcnKagMNe0/WrpnwYBM8L1w8KjUPGjnZdbhWjWgaSEsJ9uAiGEGrfKqsbIeBdMdzzLmpsVGk/feM5HqrEUU8NSt1G9HmnVG96f4J30KyB5DiAzUbLz6U9NAk6eP8m8prVmbpLfQHdndx3X65jZouRM2WyfWJv0n3BJYRyBP64Zgggnf8oKrLA7DrziWAmoBTbv1u9D9xBHXPlGkGYMtE9e1yVeHx0Ex64ypW/1E9G4epr5+BIhgud0Ckcpy2hRL0mu8LKwHOUTTRJdQ0VktBkOb8tZ/hKncZP2Q+AFHRpG6DAQKLiPjATjLyIZ2sHx539PbT/vR6MYmfzdty5owWg9QSZiRsFxIHUSr9j4jvRGAd+C7DvcWBr/rfrVkZOZuS7maCZvWm5W7k09kqmvTe1RnjN1z4XZiTJIAMtIXnDF8Mxfhwnv7E/Y/7nnU/XkTAsmW/iGDCOVp4ZwKQHFk9IF+/D8Y4IpuKOEpNLPigvVJK7arbYVUyZpmMQtITBnTYtRvXorfh//4St8XBaPsStFU1kHXde3lmYPVsBOyyH5f69EtKqOCAF+LDDX35lqLt05hfMtyqd5k="
     # enable the usage of versions menu which allow versioning of the docs
     # pages and not only the master branch
     - DOCTR_VERSIONS_MENU="1"
