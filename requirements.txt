@@ -1,0 +1,4 @@
+caproto>=0.6.0
+pandas
+aiohttp[speedups]
+versioneer

@@ -1,0 +1,10 @@
+Model Number:	985
+Serial Number:	AXYZ123456
+Firmware Version:	0.00
+Hardware Version:	0.00
+Bootloader:	0.00
+
+							Counts normalized to concentration mode volume											Unscaled raw particle count data
+Date	Time	Sample Period	Sample Volume	Sample Units	Count Mode	Concentration Mode	0.3um	0.5um	1.0um	2.0um	5.0um	10.0um	Sample Mode	Location Name	Sample Number	Cal. Value	Laser Current	0.3um (Cum. Counts)	0.5um (Cum. Counts)	1.0um (Cum. Counts)	2.0um (Cum. Counts)	5.0um (Cum. Counts)	10.0um (Cum. Counts)	Cal Alarm	Flow Alarm	Over Conc. Alarm	System Alarm	Count Alarm	Battery Alarm	Laser Alarm
+2020-08-25	09:38:31	00:15:00	42.48	L	Dif.	Counts/M3	1694.9	235.4	23.5	0.0	0.0	0.0	Automatic	Location 1	266	1.07	67.1	83	11	1	0	0	0	0	0	0	0	0	0	0
+2020-08-25	09:53:31	00:15:00	42.48	L	Dif.	Counts/M3	1530.1	94.2	47.1	0.0	0.0	0.0	Automatic	Location 1	267	1.07	67.1	71	6	2	0	0	0	0	0	0	0	0	0	0

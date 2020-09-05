@@ -1,0 +1,33 @@
+{% set data = load_setup_py_data() %}
+
+package:
+    name    : fluke_985
+    version : {{ data.get('version') }}
+
+source:
+    path: ..
+
+build:
+    number: 0
+    noarch: python
+
+requirements:
+    build:
+      - python >=3.6
+      - setuptools
+    run:
+      - python >=3.6
+      - caproto >=0.6.0
+      - pandas
+      - aiohttp
+
+test:
+    imports:
+      - fluke_985
+    requires:
+      - pytest
+
+about:
+  home: https://github.com/pcdshub/fluke_985
+  license: SLAC Open License
+  summary: Fluke 985 Particle Counter caproto IOC
