@@ -518,7 +518,7 @@ class Fluke985Base(PVGroup):
         data_text = await asyncio.wait_for(
             comm.get_data_file(host=self.host.value,
                                port=self.port.value),
-            timeout=self.request_timeout.value,
+            timeout=self.data_timeout.value,
         )
         with io.StringIO(data_text) as strio:
             return data.load_fluke_data_file(strio,
