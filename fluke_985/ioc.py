@@ -3,7 +3,9 @@ import datetime
 import io
 import pathlib
 import time
+from typing import Dict, Tuple
 
+import pandas as pd
 from caproto import AlarmSeverity, AlarmStatus
 from caproto.server import (PVGroup, SubGroup, pvproperty, run,
                             template_arg_parser)
@@ -500,7 +502,8 @@ class Fluke985Base(PVGroup):
         if pvprop.value != value:
             await pvprop.write(value=value, timestamp=timestamp)
 
-    async def _query_server_state(self):
+    async def _update_server_state(self):
+        """Query the server for its status, updating PVs as needed."""
         state_info = await asyncio.wait_for(
             comm.check_state(host=self.host.value,
                              port=self.port.value),
@@ -508,11 +511,11 @@ class Fluke985Base(PVGroup):
         )
 
         records = state_info.get('records')
-        if records is not None:
+        if records is not None and records != self.available_records.value:
             await self.available_records.write(value=records)
 
         state = state_info.get('state')
-        if state is not None:
+        if state is not None and state != self.server_state.value:
             await self.server_state.write(value=state)
 
         if state == 'new_data' and self.new_records_available:
@@ -521,17 +524,8 @@ class Fluke985Base(PVGroup):
 
     @property
     def new_records_available(self) -> bool:
+        """Are there new records available on the Fluke?"""
         return self.available_records.value > self.sync_records.value
-
-    async def _get_data_file(self):
-        data_text = await asyncio.wait_for(
-            comm.get_data_file(host=self.host.value,
-                               port=self.port.value),
-            timeout=self.data_timeout.value,
-        )
-        with io.StringIO(data_text) as strio:
-            return data.load_fluke_data_file(strio,
-                                             timezone=self.timezone.value)
 
     update_hook = pvproperty(
         value=0,
@@ -547,9 +541,9 @@ class Fluke985Base(PVGroup):
     @update_hook.scan(period=5)
     async def update_hook(self, instance, async_lib):
         try:
-            await self._query_server_state()
+            await self._update_server_state()
             if self._should_download():
-                await self._download()
+                await self._download_and_update()
         except Exception:
             self.log.exception('Update failed!')
             for key, alarm in self.alarms.items():
@@ -559,10 +553,24 @@ class Fluke985Base(PVGroup):
                         severity=AlarmSeverity.MAJOR_ALARM,
                     )
 
-    async def _download(self):
+    async def _download_data_file(self) -> Tuple[Dict[str, str], pd.DataFrame]:
+        """Download the data file from the server and parse it."""
+        data_text = await asyncio.wait_for(
+            comm.get_data_file(host=self.host.value,
+                               port=self.port.value),
+            timeout=self.data_timeout.value,
+        )
+        with io.StringIO(data_text) as strio:
+            return data.load_fluke_data_file(strio,
+                                             timezone=self.timezone.value)
+
+    async def _download_and_update(self):
         """Download the data file and update all PVs."""
         time0 = time.monotonic()
-        metadata, df = await self._get_data_file()
+        self.log.debug(
+            'Starting to download new data file. This may take a while...'
+        )
+        metadata, df = await self._download_data_file()
         self.log.debug('Downloaded new data file in %.1f sec',
                        time.monotonic() - time0)
         await self._update_metadata(metadata)
@@ -744,6 +752,9 @@ def create_parser():
 
 
 def main():
+    """
+    Primary command-line entry-point.  Ties together argparse and create_ioc.
+    """
     parser, split_args = create_parser()
     args = parser.parse_args()
     ioc_options, run_options = split_args(args)
