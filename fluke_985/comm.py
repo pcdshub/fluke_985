@@ -90,7 +90,7 @@ async def request_rebuild(
 
     url = REBUILD_URL.format(host=host, port=port)
 
-    async with session.put(url, data=data) as response:
+    async with session.post(url, data=data) as response:
         data = await response.text()
         # assert response.status == 200
         return data
