@@ -53,6 +53,21 @@ class Fluke985Base(PVGroup):
         await self.host.write(self._default_host[0])
         await self.port.write(self._default_host[1])
 
+    server_state = pvproperty(
+        value='unknown',
+        max_length=40,
+        name='ServerState',
+        read_only=True,
+        record='stringin',
+    )
+
+    num_records = pvproperty(
+        value=0,
+        name='NumRecords',
+        read_only=True,
+        record='longin',
+    )
+
     model_number = pvproperty(
         value='',
         max_length=40,
@@ -432,6 +447,17 @@ class Fluke985Base(PVGroup):
         if pvprop.value != value:
             await pvprop.write(value=value, timestamp=timestamp)
 
+    async def _query_server_state(self):
+        state_info = await comm.check_state(host=self.host.value,
+                                            port=self.port.value)
+        records = state_info.get('records')
+        if records is not None:
+            await self.num_records.write(value=records)
+
+        state = state_info.get('state')
+        if state is not None:
+            await self.server_state.write(value=state)
+
     async def _query_data_file(self):
         data_text = await comm.get_data_file(host=self.host.value,
                                              port=self.port.value)
@@ -447,6 +473,7 @@ class Fluke985Base(PVGroup):
     @update_hook.startup
     async def update_hook(self, instance, async_lib):
         try:
+            await self._query_server_state()
             metadata, df = await self._query_data_file()
         except Exception:
             for key, alarm in self.alarms.items():
