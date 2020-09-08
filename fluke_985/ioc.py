@@ -544,7 +544,7 @@ class Fluke985Base(PVGroup):
         return (self.server_state.value == 'download'
                 and self.new_records_available)
 
-    @update_hook.scan(period=1)
+    @update_hook.scan(period=5)
     async def update_hook(self, instance, async_lib):
         try:
             await self._query_server_state()
