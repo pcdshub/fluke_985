@@ -52,7 +52,7 @@ async def get_data_file(
 
     async with session.get(url) as response:
         data = await response.text()
-        # assert response.status == 200
+        assert response.status == 200
         return data
 
 
@@ -92,7 +92,7 @@ async def request_rebuild(
 
     async with session.post(url, data=data) as response:
         data = await response.text()
-        # assert response.status == 200
+        assert response.status == 200
         return data
 
 
