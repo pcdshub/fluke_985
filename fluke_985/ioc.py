@@ -55,13 +55,18 @@ class Fluke985Base(PVGroup):
         value=5.0,
         name='RequestTimeout',
         record='ai',
+        lower_ctrl_limit=1.0,
     )
 
     data_timeout = pvproperty(
         value=60 * 4,
         name='DataTimeout',
         record='ai',
+        lower_ctrl_limit=15,
     )
+
+    autosaved(request_timeout)
+    autosaved(data_timeout)
 
     @host.startup
     async def host(self, instance, async_lib):
