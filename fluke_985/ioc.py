@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import io
 import pathlib
 import time
@@ -6,7 +7,8 @@ import time
 from caproto import AlarmSeverity, AlarmStatus
 from caproto.server import (PVGroup, SubGroup, pvproperty, run,
                             template_arg_parser)
-from caproto.server.autosave import AutosaveHelper, RotatingFileManager
+from caproto.server.autosave import (AutosaveHelper, RotatingFileManager,
+                                     autosaved)
 
 from . import comm, data, util  # noqa
 
@@ -55,10 +57,25 @@ class Fluke985Base(PVGroup):
         record='ai',
     )
 
+    data_timeout = pvproperty(
+        value=60 * 4,
+        name='DataTimeout',
+        record='ai',
+    )
+
     @host.startup
     async def host(self, instance, async_lib):
         await self.host.write(self._default_host[0])
         await self.port.write(self._default_host[1])
+
+    timezone = pvproperty(
+        name='Timezone',
+        value='US/Pacific',
+        max_length=40,
+        read_only=True,
+        record='stringin',
+        doc='Timezone to use for loading date/time',
+    )
 
     server_state = pvproperty(
         value='unknown',
@@ -69,13 +86,34 @@ class Fluke985Base(PVGroup):
         alarm_group='server',
     )
 
+    available_records = pvproperty(
+        value=0,
+        name='AvailableRecords',
+        read_only=True,
+        record='longin',
+        alarm_group='server',
+        doc='Records available on the Fluke',
+    )
+
     num_records = pvproperty(
         value=0,
         name='NumRecords',
         read_only=True,
         record='longin',
         alarm_group='server',
+        doc='Records synchronized from the Fluke',
     )
+
+    last_timestamp = pvproperty(
+        value=0.0,
+        name='LastTimestamp',
+        read_only=True,
+        record='longin',
+        alarm_group='server',
+        doc='Latest timestamp from data file',
+    )
+
+    autosaved(last_timestamp)
 
     model_number = pvproperty(
         value='',
@@ -445,10 +483,9 @@ class Fluke985Base(PVGroup):
         # overall_alarm (custom)
     }
 
-    async def _write_metadata(self,
-                              pvprop: pvproperty,
-                              value: str,
-                              timestamp: float):
+    async def _write_metadata_if_changed(self, pvprop: pvproperty,
+                                         value: str,
+                                         timestamp: float):
         """
         Update the metadata, if changed.
         """
@@ -465,17 +502,27 @@ class Fluke985Base(PVGroup):
 
         records = state_info.get('records')
         if records is not None:
-            await self.num_records.write(value=records)
+            await self.available_records.write(value=records)
 
         state = state_info.get('state')
         if state is not None:
             await self.server_state.write(value=state)
 
-    async def _query_data_file(self):
-        data_text = await comm.get_data_file(host=self.host.value,
-                                             port=self.port.value)
-        strio = io.StringIO(data_text)
-        return data.load_fluke_data_file(strio)
+        # new_records = self.available_records.value > self.num_records.value
+        # if new_records or state == 'new_data':
+        if state == 'new_data' or self.available_records.value == 0:
+            await comm.request_rebuild(host=self.host.value,
+                                       port=self.port.value)
+
+    async def _get_data_file(self):
+        data_text = await asyncio.wait_for(
+            comm.get_data_file(host=self.host.value,
+                               port=self.port.value),
+            timeout=self.request_timeout.value,
+        )
+        with io.StringIO(data_text) as strio:
+            return data.load_fluke_data_file(strio,
+                                             timezone=self.timezone.value)
 
     update_hook = pvproperty(
         value=0,
@@ -483,30 +530,75 @@ class Fluke985Base(PVGroup):
         read_only=True
     )
 
-    @update_hook.startup
+    @update_hook.scan(period=1)
     async def update_hook(self, instance, async_lib):
         try:
             await self._query_server_state()
-            metadata, df = await self._query_data_file()
+            if self.server_state.value == 'download':
+                await self._download()
         except Exception:
+            self.log.exception('Update failed!')
             for key, alarm in self.alarms.items():
                 if key is not None:
                     await alarm.write(
                         status=AlarmStatus.COMM,
                         severity=AlarmSeverity.MAJOR_ALARM,
                     )
-            return
 
-        timestamp = time.time()
+    async def _download(self):
+        """Download the data file and update all PVs."""
+        metadata, df = await self._get_data_file()
+        await self._update_metadata(metadata)
+        for timestamp, row in sorted(self._find_new_rows(df).iterrows()):
+            self.log.warning('New data [%s] %s', timestamp, list(row))
+            timestamp = timestamp.timestamp()
+            await self._post_new_row(timestamp, row)
+            await self.last_timestamp.write(value=timestamp)
+        await self.num_records.write(value=len(df))
+
+    def _find_new_rows(self, df):
+        """
+        Find rows which have not yet been seen in EPICS.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            The data file pandas data frame.
+        """
+        if self.last_timestamp.value < 1e-6:
+            # Only emit the last row - we have no idea what's "new" to EPICS.
+            return df.tail(1)
+
+        last_dt = (datetime.datetime.fromtimestamp(self.last_timestamp.value)
+                   + datetime.timedelta(seconds=0.1))
+        items = df.loc[last_dt.astimezone():]
+        if not len(items) and self.num_records.value == 0:
+            # IOC rebooted, but no new data available yet; show last row.
+            return df.tail(1)
+        return items
+
+    async def _update_metadata(self, metadata, timestamp=None):
+        timestamp = timestamp or time.time()
         for key, pvprop in self._metadata_to_property.items():
-            await self._write_metadata(
+            await self._write_metadata_if_changed(
                 pvprop=getattr(self, pvprop.attr_name),
                 value=metadata.get(key, 'unknown'),
                 timestamp=timestamp,
             )
 
-        timestamp, row = list(df.tail().iterrows())[-1]
+    async def _post_new_row(self, timestamp, row):
+        """
+        Post a single dataframe row to EPICS.
 
+        Parameters
+        ----------
+        timestamp : float
+            Timestamp for all of the records.
+
+        row : pandas.Series
+            The table row with information corresponding to the given
+            timestamp.
+        """
         try:
             alarm_summary = data.summarize_alarms(row)
             await self.overall_alarm.write(value=alarm_summary,
