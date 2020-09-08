@@ -62,6 +62,7 @@ setup(
             # When adding files here, remember to update MANIFEST.in as well,
             # or else they will not be included in the distribution on PyPI!
             'sample_data.tsv',
+            'html/*.html',
             ]
         },
     install_requires=requirements,

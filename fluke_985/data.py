@@ -1,5 +1,5 @@
 import itertools
-from typing import Dict, TextIO, Tuple
+from typing import Dict, Optional, TextIO, Tuple
 
 import pandas as pd
 
@@ -14,7 +14,10 @@ ALARM_KEYS = (
 )
 
 
-def load_fluke_data_file(fp: TextIO) -> Tuple[Dict[str, str], pd.DataFrame]:
+def load_fluke_data_file(
+        fp: TextIO,
+        timezone: Optional[str] = None
+        ) -> Tuple[Dict[str, str], pd.DataFrame]:
     """
     Load a fluke 985 tab-delimited data file.
 
@@ -22,6 +25,9 @@ def load_fluke_data_file(fp: TextIO) -> Tuple[Dict[str, str], pd.DataFrame]:
     ----------
     fp : file-like object
         The data file.
+
+    timezone : str, optional
+        Time zone to use for the date/time index.
 
     Returns
     -------
@@ -49,8 +55,20 @@ def load_fluke_data_file(fp: TextIO) -> Tuple[Dict[str, str], pd.DataFrame]:
         skiprows=last_md_line + 1,
         delimiter='\t',
         parse_dates=[['Date', 'Time']],
-        index_col='Date_Time'
+        index_col='Date_Time',
+        na_values={
+            # a custom "n/a" value, it appears
+            '---',
+            # The remainder from pandas defaults:
+            '', '#N/A', '#N/A N/A', '#NA', '-1.#IND', '-1.#QNAN', '-NaN',
+            '-nan', '1.#IND', '1.#QNAN', '<NA>', 'N/A', 'NA', 'NULL', 'NaN',
+            'n/a', 'nan', 'null'
+            },
     )
+
+    if timezone is not None:
+        df.index = df.index.tz_localize(timezone)
+
     return metadata, df
 
 
