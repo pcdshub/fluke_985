@@ -19,7 +19,7 @@ def test_load(data_filename):
         metadata, data = fluke_985.load_fluke_data_file(f)
 
     assert metadata['Model Number'] == '985'
-    timestamp, row = list(data.iterrows())[-1]
+    timestamp, row = list(data.iterrows())[-2]
     assert timestamp == datetime.datetime(2020, 8, 25, 9, 53, 31)
     assert row['Sample Period'] == '00:15:00'
     # Lots o' data
