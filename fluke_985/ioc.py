@@ -5,6 +5,7 @@ import pathlib
 import time
 from typing import Dict, Tuple
 
+import aiohttp
 import numpy as np
 import pandas as pd
 from caproto import AlarmSeverity, AlarmStatus
@@ -38,6 +39,7 @@ class Fluke985Base(PVGroup):
     def __init__(self, *args, host, **kwargs):
         super().__init__(*args, **kwargs)
         self._default_host = host
+        self._consecutive_timeouts = 0
 
     host = pvproperty(
         value='',
@@ -55,7 +57,7 @@ class Fluke985Base(PVGroup):
     )
 
     request_timeout = pvproperty(
-        value=5.0,
+        value=10.0,
         name='RequestTimeout',
         record='ai',
         lower_ctrl_limit=1.0,
@@ -542,9 +544,21 @@ class Fluke985Base(PVGroup):
     @update_hook.scan(period=5)
     async def update_hook(self, instance, async_lib):
         try:
-            await self._update_server_state()
-            if self._should_download():
-                await self._download_and_update()
+            try:
+                await self._update_server_state()
+                if self._should_download():
+                    await self._download_and_update()
+            except (asyncio.TimeoutError,
+                    aiohttp.client_exceptions.ClientConnectorError):
+                self._consecutive_timeouts += 1
+                self.log.warning('Timeout while updating server (%d in a row)',
+                                 self._consecutive_timeouts)
+                if self._consecutive_timeouts >= 6:
+                    self.log.error('Too many consecutive timeouts!')
+                    self._consecutive_timeouts = 0
+                    raise
+            else:
+                self._consecutive_timeouts = 0
         except Exception:
             self.log.exception('Update failed!')
             for key, alarm in self.alarms.items():
