@@ -56,6 +56,7 @@ class Fluke985Base(PVGroup):
         name='RequestTimeout',
         record='ai',
         lower_ctrl_limit=1.0,
+        upper_ctrl_limit=100,
     )
 
     data_timeout = pvproperty(
@@ -63,6 +64,7 @@ class Fluke985Base(PVGroup):
         name='DataTimeout',
         record='ai',
         lower_ctrl_limit=15,
+        upper_ctrl_limit=600,
     )
 
     autosaved(request_timeout)
@@ -100,7 +102,7 @@ class Fluke985Base(PVGroup):
         doc='Records available on the Fluke',
     )
 
-    num_records = pvproperty(
+    sync_records = pvproperty(
         value=0,
         name='NumRecords',
         read_only=True,
@@ -513,11 +515,13 @@ class Fluke985Base(PVGroup):
         if state is not None:
             await self.server_state.write(value=state)
 
-        # new_records = self.available_records.value > self.num_records.value
-        # if new_records or state == 'new_data':
-        if state == 'new_data' or self.available_records.value == 0:
+        if state == 'new_data' and self.new_records_available:
             await comm.request_rebuild(host=self.host.value,
                                        port=self.port.value)
+
+    @property
+    def new_records_available(self) -> bool:
+        return self.available_records.value > self.sync_records.value
 
     async def _get_data_file(self):
         data_text = await asyncio.wait_for(
@@ -535,11 +539,16 @@ class Fluke985Base(PVGroup):
         read_only=True
     )
 
+    def _should_download(self) -> bool:
+        """Should we start the long download process?"""
+        return (self.server_state.value == 'download'
+                and self.new_records_available)
+
     @update_hook.scan(period=1)
     async def update_hook(self, instance, async_lib):
         try:
             await self._query_server_state()
-            if self.server_state.value == 'download':
+            if self._should_download():
                 await self._download()
         except Exception:
             self.log.exception('Update failed!')
@@ -562,7 +571,7 @@ class Fluke985Base(PVGroup):
             timestamp = timestamp.timestamp()
             await self._post_new_row(timestamp, row)
             await self.last_timestamp.write(value=timestamp)
-        await self.num_records.write(value=len(df))
+        await self.sync_records.write(value=len(df))
 
     def _find_new_rows(self, df):
         """
@@ -580,7 +589,7 @@ class Fluke985Base(PVGroup):
         last_dt = (datetime.datetime.fromtimestamp(self.last_timestamp.value)
                    + datetime.timedelta(seconds=0.1))
         items = df.loc[last_dt.astimezone():]
-        if not len(items) and self.num_records.value == 0:
+        if not len(items) and self.sync_records.value == 0:
             # IOC rebooted, but no new data available yet; show last row.
             return df.tail(1)
         return items
