@@ -1,5 +1,5 @@
 import itertools
-from typing import Dict, TextIO, Tuple
+from typing import Dict, Optional, TextIO, Tuple
 
 import pandas as pd
 
@@ -14,7 +14,10 @@ ALARM_KEYS = (
 )
 
 
-def load_fluke_data_file(fp: TextIO) -> Tuple[Dict[str, str], pd.DataFrame]:
+def load_fluke_data_file(
+        fp: TextIO,
+        timezone: Optional[str] = None
+        ) -> Tuple[Dict[str, str], pd.DataFrame]:
     """
     Load a fluke 985 tab-delimited data file.
 
@@ -22,6 +25,9 @@ def load_fluke_data_file(fp: TextIO) -> Tuple[Dict[str, str], pd.DataFrame]:
     ----------
     fp : file-like object
         The data file.
+
+    timezone : str, optional
+        Time zone to use for the date/time index.
 
     Returns
     -------
@@ -51,6 +57,10 @@ def load_fluke_data_file(fp: TextIO) -> Tuple[Dict[str, str], pd.DataFrame]:
         parse_dates=[['Date', 'Time']],
         index_col='Date_Time'
     )
+
+    if timezone is not None:
+        df.index = df.index.tz_localize(timezone)
+
     return metadata, df
 
 
