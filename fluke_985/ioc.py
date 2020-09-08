@@ -1,3 +1,4 @@
+import asyncio
 import io
 import pathlib
 import time
@@ -48,6 +49,12 @@ class Fluke985Base(PVGroup):
         record='longin',
     )
 
+    request_timeout = pvproperty(
+        value=5.0,
+        name='RequestTimeout',
+        record='ai',
+    )
+
     @host.startup
     async def host(self, instance, async_lib):
         await self.host.write(self._default_host[0])
@@ -59,6 +66,7 @@ class Fluke985Base(PVGroup):
         name='ServerState',
         read_only=True,
         record='stringin',
+        alarm_group='server',
     )
 
     num_records = pvproperty(
@@ -66,6 +74,7 @@ class Fluke985Base(PVGroup):
         name='NumRecords',
         read_only=True,
         record='longin',
+        alarm_group='server',
     )
 
     model_number = pvproperty(
@@ -448,8 +457,12 @@ class Fluke985Base(PVGroup):
             await pvprop.write(value=value, timestamp=timestamp)
 
     async def _query_server_state(self):
-        state_info = await comm.check_state(host=self.host.value,
-                                            port=self.port.value)
+        state_info = await asyncio.wait_for(
+            comm.check_state(host=self.host.value,
+                             port=self.port.value),
+            timeout=self.request_timeout.value,
+        )
+
         records = state_info.get('records')
         if records is not None:
             await self.num_records.write(value=records)
