@@ -12,6 +12,7 @@ recursive-include docs *.rst conf.py Makefile make.bat
 include versioneer.py
 include fluke_985/_version.py
 include fluke_985/sample_data.tsv
+include fluke_985/html/*.html
 
 # If including data files in the package, add them like:
 # include path/to/data_file
