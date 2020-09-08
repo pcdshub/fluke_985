@@ -552,7 +552,10 @@ class Fluke985Base(PVGroup):
 
     async def _download(self):
         """Download the data file and update all PVs."""
+        time0 = time.monotonic()
         metadata, df = await self._get_data_file()
+        self.log.debug('Downloaded new data file in %.1f sec',
+                       time.monotonic() - time0)
         await self._update_metadata(metadata)
         for timestamp, row in sorted(self._find_new_rows(df).iterrows()):
             self.log.warning('New data [%s] %s', timestamp, list(row))
