@@ -55,7 +55,15 @@ def load_fluke_data_file(
         skiprows=last_md_line + 1,
         delimiter='\t',
         parse_dates=[['Date', 'Time']],
-        index_col='Date_Time'
+        index_col='Date_Time',
+        na_values={
+            # a custom "n/a" value, it appears
+            '---',
+            # The remainder from pandas defaults:
+            '', '#N/A', '#N/A N/A', '#NA', '-1.#IND', '-1.#QNAN', '-NaN',
+            '-nan', '1.#IND', '1.#QNAN', '<NA>', 'N/A', 'NA', 'NULL', 'NaN',
+            'n/a', 'nan', 'null'
+            },
     )
 
     if timezone is not None:

@@ -5,6 +5,7 @@ import pathlib
 import time
 from typing import Dict, Tuple
 
+import numpy as np
 import pandas as pd
 from caproto import AlarmSeverity, AlarmStatus
 from caproto.server import (PVGroup, SubGroup, pvproperty, run,
@@ -645,9 +646,19 @@ class Fluke985Base(PVGroup):
 
             prop = getattr(self, prop.attr_name)
             try:
-                await prop.write(value=value, timestamp=timestamp,
-                                 status=status,
-                                 severity=severity)
+                if isinstance(value, float) and np.isnan(value):
+                    self.log.debug('Empty value for key %r', key)
+                    await prop.write_metadata(
+                        timestamp=timestamp,
+                        status=AlarmStatus.UDF,
+                        severity=AlarmSeverity.NO_ALARM,
+                    )
+                else:
+                    type_cast = type(prop.value)
+                    value = type_cast(value)
+                    await prop.write(value=value, timestamp=timestamp,
+                                     status=status,
+                                     severity=severity)
             except Exception as ex:
                 self.log.exception('Failed to update key %s=%s: %s', key,
                                    value, ex)
@@ -657,9 +668,10 @@ class Fluke985Base(PVGroup):
         except KeyError:
             self.log.exception('Sample Units unavailable?')
         else:
-            await self.sample_volume.write_metadata(units=units)
-            await self.sample_volume.field_inst.engineering_units.write(
-                value=value)
+            if not np.isnan(units):
+                await self.sample_volume.write_metadata(units=units)
+                await self.sample_volume.field_inst.engineering_units.write(
+                    value=value)
 
         try:
             await self.sample_period.write(
