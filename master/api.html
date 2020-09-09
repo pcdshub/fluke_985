@@ -182,6 +182,8 @@
 </dd>
 <dt class="field-even">Attributes</dt>
 <dd class="field-even"><dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">available_records</span></code></dt><dd><p>Records available on the Fluke</p>
+</dd>
 <dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">battery_alarm</span></code></dt><dd><p>Battery alarm</p>
 </dd>
 <dt><strong>bootloader_version</strong></dt><dd></dd>
@@ -192,6 +194,7 @@
 <dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">count_alarm</span></code></dt><dd><p>Count alarm</p>
 </dd>
 <dt><strong>count_mode</strong></dt><dd></dd>
+<dt><strong>data_timeout</strong></dt><dd></dd>
 <dt><strong>firmware_version</strong></dt><dd></dd>
 <dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">flow_alarm</span></code></dt><dd><p>Flow alarm</p>
 </dd>
@@ -200,9 +203,13 @@
 <dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">laser_alarm</span></code></dt><dd><p>Laser alarm</p>
 </dd>
 <dt><strong>laser_current</strong></dt><dd></dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">last_timestamp</span></code></dt><dd><p>Latest timestamp from data file</p>
+</dd>
 <dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">location_name</span></code></dt><dd><p>Configured location name on device</p>
 </dd>
 <dt><strong>model_number</strong></dt><dd></dd>
+<dt><a class="reference internal" href="#fluke_985.ioc.Fluke985Base.new_records_available" title="fluke_985.ioc.Fluke985Base.new_records_available"><code class="xref py py-obj docutils literal notranslate"><span class="pre">new_records_available</span></code></a></dt><dd><p>Are there new records available on the Fluke?</p>
+</dd>
 <dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">norm_0_3um</span></code></dt><dd><p>0.3um Normalized to conc. mode volume</p>
 </dd>
 <dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">norm_0_5um</span></code></dt><dd><p>0.5um Normalized to conc. mode volume</p>
@@ -232,6 +239,7 @@
 </dd>
 <dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">raw_5_0um</span></code></dt><dd><p>5.0um cumulative raw counts</p>
 </dd>
+<dt><strong>request_timeout</strong></dt><dd></dd>
 <dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">sample_mode</span></code></dt><dd><p>Sample mode (e.g., Automatic)</p>
 </dd>
 <dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">sample_number</span></code></dt><dd><p>Sample number index</p>
@@ -239,7 +247,12 @@
 <dt><strong>sample_period</strong></dt><dd></dd>
 <dt><strong>sample_volume</strong></dt><dd></dd>
 <dt><strong>serial_number</strong></dt><dd></dd>
+<dt><strong>server_state</strong></dt><dd></dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">sync_records</span></code></dt><dd><p>Records synchronized from the Fluke</p>
+</dd>
 <dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">system_alarm</span></code></dt><dd><p>System alarm</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">timezone</span></code></dt><dd><p>Timezone to use for loading date/time</p>
 </dd>
 <dt><strong>update_hook</strong></dt><dd></dd>
 </dl>
@@ -252,26 +265,32 @@
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">battery_alarm</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">available_records</span></code></p></td>
+<td><p>Records available on the Fluke</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">battery_alarm</span></code></p></td>
 <td><p>Battery alarm</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">cal_alarm</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">cal_alarm</span></code></p></td>
 <td><p>Calibration alarm</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">count_alarm</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">count_alarm</span></code></p></td>
 <td><p>Count alarm</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">flow_alarm</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">flow_alarm</span></code></p></td>
 <td><p>Flow alarm</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#fluke_985.ioc.Fluke985Base.group_read" title="fluke_985.ioc.Fluke985Base.group_read"><code class="xref py py-obj docutils literal notranslate"><span class="pre">group_read</span></code></a>(instance)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#fluke_985.ioc.Fluke985Base.group_read" title="fluke_985.ioc.Fluke985Base.group_read"><code class="xref py py-obj docutils literal notranslate"><span class="pre">group_read</span></code></a>(instance)</p></td>
 <td><p>Generic read called for channels without <cite>get</cite> defined</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#fluke_985.ioc.Fluke985Base.group_write" title="fluke_985.ioc.Fluke985Base.group_write"><code class="xref py py-obj docutils literal notranslate"><span class="pre">group_write</span></code></a>(instance, value)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#fluke_985.ioc.Fluke985Base.group_write" title="fluke_985.ioc.Fluke985Base.group_write"><code class="xref py py-obj docutils literal notranslate"><span class="pre">group_write</span></code></a>(instance, value)</p></td>
 <td><p>Generic write called for channels without <cite>put</cite> defined</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">laser_alarm</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">laser_alarm</span></code></p></td>
 <td><p>Laser alarm</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">last_timestamp</span></code></p></td>
+<td><p>Latest timestamp from data file</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">location_name</span></code></p></td>
 <td><p>Configured location name on device</p></td>
@@ -324,8 +343,14 @@
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">sample_number</span></code></p></td>
 <td><p>Sample number index</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">system_alarm</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">sync_records</span></code></p></td>
+<td><p>Records synchronized from the Fluke</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">system_alarm</span></code></p></td>
 <td><p>System alarm</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">timezone</span></code></p></td>
+<td><p>Timezone to use for loading date/time</p></td>
 </tr>
 </tbody>
 </table>
@@ -347,22 +372,28 @@
 <tr class="row-even"><td><p><strong>count_mode</strong></p></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><strong>firmware_version</strong></p></td>
+<tr class="row-odd"><td><p><strong>data_timeout</strong></p></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p><strong>hardware_version</strong></p></td>
+<tr class="row-even"><td><p><strong>firmware_version</strong></p></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><strong>host</strong></p></td>
+<tr class="row-odd"><td><p><strong>hardware_version</strong></p></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p><strong>laser_current</strong></p></td>
+<tr class="row-even"><td><p><strong>host</strong></p></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p><strong>model_number</strong></p></td>
+<tr class="row-odd"><td><p><strong>laser_current</strong></p></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p><strong>port</strong></p></td>
+<tr class="row-even"><td><p><strong>model_number</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>port</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>request_timeout</strong></p></td>
 <td></td>
 </tr>
 <tr class="row-odd"><td><p><strong>sample_period</strong></p></td>
@@ -374,7 +405,10 @@
 <tr class="row-odd"><td><p><strong>serial_number</strong></p></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p><strong>update_hook</strong></p></td>
+<tr class="row-even"><td><p><strong>server_state</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>update_hook</strong></p></td>
 <td></td>
 </tr>
 </tbody>
@@ -391,54 +425,68 @@
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>battery_alarm</p></td>
+<tr class="row-even"><td><p>available_records</p></td>
+<td><p>Records available on the Fluke</p></td>
+<td><p>AvailableRecords (longin)</p></td>
+<td><p>int</p></td>
+<td><p>read-only</p></td>
+<td><p>server</p></td>
+</tr>
+<tr class="row-odd"><td><p>battery_alarm</p></td>
 <td><p>Battery alarm</p></td>
 <td><p>BatteryAlarm (longin)</p></td>
 <td><p>int</p></td>
 <td><p>read-only</p></td>
 <td><p>battery_alarm</p></td>
 </tr>
-<tr class="row-odd"><td><p>bootloader_version</p></td>
+<tr class="row-even"><td><p>bootloader_version</p></td>
 <td></td>
 <td><p>BootloaderVersion (stringin)</p></td>
 <td><p>str[40]</p></td>
 <td><p>read-only</p></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p>cal_alarm</p></td>
+<tr class="row-odd"><td><p>cal_alarm</p></td>
 <td><p>Calibration alarm</p></td>
 <td><p>CalAlarm (longin)</p></td>
 <td><p>int</p></td>
 <td><p>read-only</p></td>
 <td><p>cal_alarm</p></td>
 </tr>
-<tr class="row-odd"><td><p>calibrated_value</p></td>
+<tr class="row-even"><td><p>calibrated_value</p></td>
 <td></td>
 <td><p>CalibratedValue (ai)</p></td>
 <td><p>float</p></td>
 <td><p>read-only</p></td>
 <td><p>calibrated_value</p></td>
 </tr>
-<tr class="row-even"><td><p>concentration_mode</p></td>
+<tr class="row-odd"><td><p>concentration_mode</p></td>
 <td></td>
 <td><p>ConcentrationMode (stringin)</p></td>
 <td><p>str[40]</p></td>
 <td><p>read-only</p></td>
 <td><p>concentration_mode</p></td>
 </tr>
-<tr class="row-odd"><td><p>count_alarm</p></td>
+<tr class="row-even"><td><p>count_alarm</p></td>
 <td><p>Count alarm</p></td>
 <td><p>CountAlarm (longin)</p></td>
 <td><p>int</p></td>
 <td><p>read-only</p></td>
 <td><p>count_alarm</p></td>
 </tr>
-<tr class="row-even"><td><p>count_mode</p></td>
+<tr class="row-odd"><td><p>count_mode</p></td>
 <td></td>
 <td><p>CountMode (stringin)</p></td>
 <td><p>str[40]</p></td>
 <td><p>read-only</p></td>
 <td><p>count_mode</p></td>
+</tr>
+<tr class="row-even"><td><p>data_timeout</p></td>
+<td></td>
+<td><p>DataTimeout (ai)</p></td>
+<td><p>int = 240</p></td>
+<td></td>
+<td></td>
 </tr>
 <tr class="row-odd"><td><p>firmware_version</p></td>
 <td></td>
@@ -482,124 +530,138 @@
 <td><p>read-only</p></td>
 <td><p>laser_current</p></td>
 </tr>
-<tr class="row-odd"><td><p>location_name</p></td>
+<tr class="row-odd"><td><p>last_timestamp</p></td>
+<td><p>Latest timestamp from data file</p></td>
+<td><p>LastTimestamp (longin)</p></td>
+<td><p>float</p></td>
+<td><p>read-only</p></td>
+<td><p>server</p></td>
+</tr>
+<tr class="row-even"><td><p>location_name</p></td>
 <td><p>Configured location name on device</p></td>
 <td><p>LocationName (stringin)</p></td>
 <td><p>str[40]</p></td>
 <td><p>read-only</p></td>
 <td><p>location_name</p></td>
 </tr>
-<tr class="row-even"><td><p>model_number</p></td>
+<tr class="row-odd"><td><p>model_number</p></td>
 <td></td>
 <td><p>ModelNumber (stringin)</p></td>
 <td><p>str[40]</p></td>
 <td><p>read-only</p></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><p>norm_0_3um</p></td>
+<tr class="row-even"><td><p>norm_0_3um</p></td>
 <td><p>0.3um Normalized to conc. mode volume</p></td>
 <td><p>Norm0_3um (ai)</p></td>
 <td><p>float</p></td>
 <td><p>read-only</p></td>
 <td><p>norm_0_3um</p></td>
 </tr>
-<tr class="row-even"><td><p>norm_0_5um</p></td>
+<tr class="row-odd"><td><p>norm_0_5um</p></td>
 <td><p>0.5um Normalized to conc. mode volume</p></td>
 <td><p>Norm0_5um (ai)</p></td>
 <td><p>float</p></td>
 <td><p>read-only</p></td>
 <td><p>norm_0_5um</p></td>
 </tr>
-<tr class="row-odd"><td><p>norm_10_0um</p></td>
+<tr class="row-even"><td><p>norm_10_0um</p></td>
 <td><p>10.0um Normalized to conc. mode volume</p></td>
 <td><p>Norm10_0um (ai)</p></td>
 <td><p>float</p></td>
 <td><p>read-only</p></td>
 <td><p>norm_10_0um</p></td>
 </tr>
-<tr class="row-even"><td><p>norm_1_0um</p></td>
+<tr class="row-odd"><td><p>norm_1_0um</p></td>
 <td><p>1.0um Normalized to conc. mode volume</p></td>
 <td><p>Norm1_0um (ai)</p></td>
 <td><p>float</p></td>
 <td><p>read-only</p></td>
 <td><p>norm_1_0um</p></td>
 </tr>
-<tr class="row-odd"><td><p>norm_2_0um</p></td>
+<tr class="row-even"><td><p>norm_2_0um</p></td>
 <td><p>2.0um Normalized to conc. mode volume</p></td>
 <td><p>Norm2_0um (ai)</p></td>
 <td><p>float</p></td>
 <td><p>read-only</p></td>
 <td><p>norm_2_0um</p></td>
 </tr>
-<tr class="row-even"><td><p>norm_5_0um</p></td>
+<tr class="row-odd"><td><p>norm_5_0um</p></td>
 <td><p>5.0um Normalized to conc. mode volume</p></td>
 <td><p>Norm5_0um (ai)</p></td>
 <td><p>float</p></td>
 <td><p>read-only</p></td>
 <td><p>norm_5_0um</p></td>
 </tr>
-<tr class="row-odd"><td><p>over_conc_alarm</p></td>
+<tr class="row-even"><td><p>over_conc_alarm</p></td>
 <td><p>Over concentration alarm</p></td>
 <td><p>OverConcAlarm (longin)</p></td>
 <td><p>int</p></td>
 <td><p>read-only</p></td>
 <td><p>over_conc_alarm</p></td>
 </tr>
-<tr class="row-even"><td><p>overall_alarm</p></td>
+<tr class="row-odd"><td><p>overall_alarm</p></td>
 <td><p>Summed alarm status (cal, flow, etc.)</p></td>
 <td><p>OverallAlarm (longin)</p></td>
 <td><p>int</p></td>
 <td><p>read-only</p></td>
 <td><p>overall_alarm</p></td>
 </tr>
-<tr class="row-odd"><td><p>port</p></td>
+<tr class="row-even"><td><p>port</p></td>
 <td></td>
 <td><p>Port (longin)</p></td>
 <td><p>int = 80</p></td>
 <td><p>read-only</p></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><p>raw_0_3um</p></td>
+<tr class="row-odd"><td><p>raw_0_3um</p></td>
 <td><p>0.3um cumulative raw counts</p></td>
 <td><p>Raw0_3um (ai)</p></td>
 <td><p>float</p></td>
 <td><p>read-only</p></td>
 <td><p>raw_0_3um</p></td>
 </tr>
-<tr class="row-odd"><td><p>raw_0_5um</p></td>
+<tr class="row-even"><td><p>raw_0_5um</p></td>
 <td><p>0.5um cumulative raw counts</p></td>
 <td><p>Raw0_5um (ai)</p></td>
 <td><p>float</p></td>
 <td><p>read-only</p></td>
 <td><p>raw_0_5um</p></td>
 </tr>
-<tr class="row-even"><td><p>raw_10_0um</p></td>
+<tr class="row-odd"><td><p>raw_10_0um</p></td>
 <td><p>10.0um cumulative raw counts</p></td>
 <td><p>Raw10_0um (ai)</p></td>
 <td><p>float</p></td>
 <td><p>read-only</p></td>
 <td><p>raw_10_0um</p></td>
 </tr>
-<tr class="row-odd"><td><p>raw_1_0um</p></td>
+<tr class="row-even"><td><p>raw_1_0um</p></td>
 <td><p>1.0um cumulative raw counts</p></td>
 <td><p>Raw1_0um (ai)</p></td>
 <td><p>float</p></td>
 <td><p>read-only</p></td>
 <td><p>raw_1_0um</p></td>
 </tr>
-<tr class="row-even"><td><p>raw_2_0um</p></td>
+<tr class="row-odd"><td><p>raw_2_0um</p></td>
 <td><p>2.0um cumulative raw counts</p></td>
 <td><p>Raw2_0um (ai)</p></td>
 <td><p>float</p></td>
 <td><p>read-only</p></td>
 <td><p>raw_2_0um</p></td>
 </tr>
-<tr class="row-odd"><td><p>raw_5_0um</p></td>
+<tr class="row-even"><td><p>raw_5_0um</p></td>
 <td><p>5.0um cumulative raw counts</p></td>
 <td><p>Raw5_0um (ai)</p></td>
 <td><p>float</p></td>
 <td><p>read-only</p></td>
 <td><p>raw_5_0um</p></td>
+</tr>
+<tr class="row-odd"><td><p>request_timeout</p></td>
+<td></td>
+<td><p>RequestTimeout (ai)</p></td>
+<td><p>float = 10.0</p></td>
+<td></td>
+<td></td>
 </tr>
 <tr class="row-even"><td><p>sample_mode</p></td>
 <td><p>Sample mode (e.g., Automatic)</p></td>
@@ -636,6 +698,20 @@
 <td><p>read-only</p></td>
 <td></td>
 </tr>
+<tr class="row-odd"><td><p>server_state</p></td>
+<td></td>
+<td><p>ServerState (stringin)</p></td>
+<td><p>str[40] = unknown</p></td>
+<td><p>read-only</p></td>
+<td><p>server</p></td>
+</tr>
+<tr class="row-even"><td><p>sync_records</p></td>
+<td><p>Records synchronized from the Fluke</p></td>
+<td><p>NumRecords (longin)</p></td>
+<td><p>int</p></td>
+<td><p>read-only</p></td>
+<td><p>server</p></td>
+</tr>
 <tr class="row-odd"><td><p>system_alarm</p></td>
 <td><p>System alarm</p></td>
 <td><p>SystemAlarm (longin)</p></td>
@@ -643,7 +719,14 @@
 <td><p>read-only</p></td>
 <td><p>system_alarm</p></td>
 </tr>
-<tr class="row-even"><td><p>update_hook</p></td>
+<tr class="row-even"><td><p>timezone</p></td>
+<td><p>Timezone to use for loading date/time</p></td>
+<td><p>Timezone (stringin)</p></td>
+<td><p>str[40] = US/Pacific</p></td>
+<td><p>read-only</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>update_hook</p></td>
 <td></td>
 <td><p>__update_hook__</p></td>
 <td><p>int</p></td>
@@ -662,6 +745,12 @@
 <dt id="fluke_985.ioc.Fluke985Base.group_write">
 <em class="property">async </em><code class="sig-name descname">group_write</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">instance</span></em>, <em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="headerlink" href="#fluke_985.ioc.Fluke985Base.group_write" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generic write called for channels without <cite>put</cite> defined</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="fluke_985.ioc.Fluke985Base.new_records_available">
+<em class="property">property </em><code class="sig-name descname">new_records_available</code><a class="headerlink" href="#fluke_985.ioc.Fluke985Base.new_records_available" title="Permalink to this definition">¶</a></dt>
+<dd><p>Are there new records available on the Fluke?</p>
 </dd></dl>
 
 </dd></dl>

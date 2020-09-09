@@ -153,14 +153,21 @@
            <div itemprop="articleBody">
             
   <h1>Source code for fluke_985.ioc</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">io</span>
+<span></span><span class="kn">import</span> <span class="nn">asyncio</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">io</span>
 <span class="kn">import</span> <span class="nn">pathlib</span>
 <span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span>
 
+<span class="kn">import</span> <span class="nn">aiohttp</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">from</span> <span class="nn">caproto</span> <span class="kn">import</span> <span class="n">AlarmSeverity</span><span class="p">,</span> <span class="n">AlarmStatus</span>
 <span class="kn">from</span> <span class="nn">caproto.server</span> <span class="kn">import</span> <span class="p">(</span><span class="n">PVGroup</span><span class="p">,</span> <span class="n">SubGroup</span><span class="p">,</span> <span class="n">pvproperty</span><span class="p">,</span> <span class="n">run</span><span class="p">,</span>
                             <span class="n">template_arg_parser</span><span class="p">)</span>
-<span class="kn">from</span> <span class="nn">caproto.server.autosave</span> <span class="kn">import</span> <span class="n">AutosaveHelper</span><span class="p">,</span> <span class="n">RotatingFileManager</span>
+<span class="kn">from</span> <span class="nn">caproto.server.autosave</span> <span class="kn">import</span> <span class="p">(</span><span class="n">AutosaveHelper</span><span class="p">,</span> <span class="n">RotatingFileManager</span><span class="p">,</span>
+                                     <span class="n">autosaved</span><span class="p">)</span>
 
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">comm</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">util</span>  <span class="c1"># noqa</span>
 
@@ -187,6 +194,7 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_default_host</span> <span class="o">=</span> <span class="n">host</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_consecutive_timeouts</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="n">host</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
         <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
@@ -203,10 +211,76 @@
         <span class="n">record</span><span class="o">=</span><span class="s1">&#39;longin&#39;</span><span class="p">,</span>
     <span class="p">)</span>
 
+    <span class="n">request_timeout</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">value</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;RequestTimeout&#39;</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;ai&#39;</span><span class="p">,</span>
+        <span class="n">lower_ctrl_limit</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">upper_ctrl_limit</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">data_timeout</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">value</span><span class="o">=</span><span class="mi">60</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;DataTimeout&#39;</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;ai&#39;</span><span class="p">,</span>
+        <span class="n">lower_ctrl_limit</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
+        <span class="n">upper_ctrl_limit</span><span class="o">=</span><span class="mi">600</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">autosaved</span><span class="p">(</span><span class="n">request_timeout</span><span class="p">)</span>
+    <span class="n">autosaved</span><span class="p">(</span><span class="n">data_timeout</span><span class="p">)</span>
+
     <span class="nd">@host</span><span class="o">.</span><span class="n">startup</span>
     <span class="k">async</span> <span class="k">def</span> <span class="nf">host</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">async_lib</span><span class="p">):</span>
         <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_default_host</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_default_host</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">timezone</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Timezone&#39;</span><span class="p">,</span>
+        <span class="n">value</span><span class="o">=</span><span class="s1">&#39;US/Pacific&#39;</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;stringin&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Timezone to use for loading date/time&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">server_state</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">value</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;ServerState&#39;</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;stringin&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;server&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">available_records</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;AvailableRecords&#39;</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;longin&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;server&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Records available on the Fluke&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">sync_records</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;NumRecords&#39;</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;longin&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;server&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Records synchronized from the Fluke&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">last_timestamp</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
+        <span class="n">value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;LastTimestamp&#39;</span><span class="p">,</span>
+        <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">record</span><span class="o">=</span><span class="s1">&#39;longin&#39;</span><span class="p">,</span>
+        <span class="n">alarm_group</span><span class="o">=</span><span class="s1">&#39;server&#39;</span><span class="p">,</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Latest timestamp from data file&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">autosaved</span><span class="p">(</span><span class="n">last_timestamp</span><span class="p">)</span>
 
     <span class="n">model_number</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
         <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
@@ -576,10 +650,9 @@
         <span class="c1"># overall_alarm (custom)</span>
     <span class="p">}</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_write_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                              <span class="n">pvprop</span><span class="p">:</span> <span class="n">pvproperty</span><span class="p">,</span>
-                              <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-                              <span class="n">timestamp</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">_write_metadata_if_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pvprop</span><span class="p">:</span> <span class="n">pvproperty</span><span class="p">,</span>
+                                         <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                         <span class="n">timestamp</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Update the metadata, if changed.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -587,11 +660,30 @@
         <span class="k">if</span> <span class="n">pvprop</span><span class="o">.</span><span class="n">value</span> <span class="o">!=</span> <span class="n">value</span><span class="p">:</span>
             <span class="k">await</span> <span class="n">pvprop</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">timestamp</span><span class="o">=</span><span class="n">timestamp</span><span class="p">)</span>
 
-    <span class="k">async</span> <span class="k">def</span> <span class="nf">_query_data_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">data_text</span> <span class="o">=</span> <span class="k">await</span> <span class="n">comm</span><span class="o">.</span><span class="n">get_data_file</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
-                                             <span class="n">port</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
-        <span class="n">strio</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">data_text</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">load_fluke_data_file</span><span class="p">(</span><span class="n">strio</span><span class="p">)</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">_update_server_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Query the server for its status, updating PVs as needed.&quot;&quot;&quot;</span>
+        <span class="n">state_info</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait_for</span><span class="p">(</span>
+            <span class="n">comm</span><span class="o">.</span><span class="n">check_state</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                             <span class="n">port</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="o">.</span><span class="n">value</span><span class="p">),</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request_timeout</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">records</span> <span class="o">=</span> <span class="n">state_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;records&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">records</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">records</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_records</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_records</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">records</span><span class="p">)</span>
+
+        <span class="n">state</span> <span class="o">=</span> <span class="n">state_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;state&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">state</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">server_state</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">server_state</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">state</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;new_data&#39;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_records_available</span><span class="p">:</span>
+            <span class="k">await</span> <span class="n">comm</span><span class="o">.</span><span class="n">request_rebuild</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                                       <span class="n">port</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">new_records_available</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Are there new records available on the Fluke?&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_records</span><span class="o">.</span><span class="n">value</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">sync_records</span><span class="o">.</span><span class="n">value</span>
 
     <span class="n">update_hook</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
         <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
@@ -599,29 +691,109 @@
         <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span>
     <span class="p">)</span>
 
-    <span class="nd">@update_hook</span><span class="o">.</span><span class="n">startup</span>
+    <span class="k">def</span> <span class="nf">_should_download</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Should we start the long download process?&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">server_state</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="s1">&#39;download&#39;</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_records_available</span><span class="p">)</span>
+
+    <span class="nd">@update_hook</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="n">period</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
     <span class="k">async</span> <span class="k">def</span> <span class="nf">update_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">async_lib</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">metadata</span><span class="p">,</span> <span class="n">df</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query_data_file</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_server_state</span><span class="p">()</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_download</span><span class="p">():</span>
+                    <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_download_and_update</span><span class="p">()</span>
+            <span class="k">except</span> <span class="p">(</span><span class="n">asyncio</span><span class="o">.</span><span class="n">TimeoutError</span><span class="p">,</span>
+                    <span class="n">aiohttp</span><span class="o">.</span><span class="n">client_exceptions</span><span class="o">.</span><span class="n">ClientConnectorError</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_consecutive_timeouts</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Timeout while updating server (</span><span class="si">%d</span><span class="s1"> in a row)&#39;</span><span class="p">,</span>
+                                 <span class="bp">self</span><span class="o">.</span><span class="n">_consecutive_timeouts</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_consecutive_timeouts</span> <span class="o">&gt;=</span> <span class="mi">6</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Too many consecutive timeouts!&#39;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_consecutive_timeouts</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="k">raise</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_consecutive_timeouts</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s1">&#39;Update failed!&#39;</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">alarm</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">alarms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                 <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="k">await</span> <span class="n">alarm</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
                         <span class="n">status</span><span class="o">=</span><span class="n">AlarmStatus</span><span class="o">.</span><span class="n">COMM</span><span class="p">,</span>
                         <span class="n">severity</span><span class="o">=</span><span class="n">AlarmSeverity</span><span class="o">.</span><span class="n">MAJOR_ALARM</span><span class="p">,</span>
                     <span class="p">)</span>
-            <span class="k">return</span>
 
-        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">_download_data_file</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Download the data file from the server and parse it.&quot;&quot;&quot;</span>
+        <span class="n">data_text</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait_for</span><span class="p">(</span>
+            <span class="n">comm</span><span class="o">.</span><span class="n">get_data_file</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                               <span class="n">port</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="o">.</span><span class="n">value</span><span class="p">),</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data_timeout</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">with</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">data_text</span><span class="p">)</span> <span class="k">as</span> <span class="n">strio</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">load_fluke_data_file</span><span class="p">(</span><span class="n">strio</span><span class="p">,</span>
+                                             <span class="n">timezone</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">timezone</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">_download_and_update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Download the data file and update all PVs.&quot;&quot;&quot;</span>
+        <span class="n">time0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s1">&#39;Starting to download new data file. This may take a while...&#39;</span>
+        <span class="p">)</span>
+        <span class="n">metadata</span><span class="p">,</span> <span class="n">df</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_download_data_file</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Downloaded new data file in </span><span class="si">%.1f</span><span class="s1"> sec&#39;</span><span class="p">,</span>
+                       <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span> <span class="o">-</span> <span class="n">time0</span><span class="p">)</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_metadata</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_find_new_rows</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;New data [</span><span class="si">%s</span><span class="s1">] </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">row</span><span class="p">))</span>
+            <span class="n">timestamp</span> <span class="o">=</span> <span class="n">timestamp</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_post_new_row</span><span class="p">(</span><span class="n">timestamp</span><span class="p">,</span> <span class="n">row</span><span class="p">)</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_timestamp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">timestamp</span><span class="p">)</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">sync_records</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_find_new_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Find rows which have not yet been seen in EPICS.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        df : pandas.DataFrame</span>
+<span class="sd">            The data file pandas data frame.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_timestamp</span><span class="o">.</span><span class="n">value</span> <span class="o">&lt;</span> <span class="mf">1e-6</span><span class="p">:</span>
+            <span class="c1"># Only emit the last row - we have no idea what&#39;s &quot;new&quot; to EPICS.</span>
+            <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">tail</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">last_dt</span> <span class="o">=</span> <span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_timestamp</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+                   <span class="o">+</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="mf">0.1</span><span class="p">))</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">last_dt</span><span class="o">.</span><span class="n">astimezone</span><span class="p">():]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sync_records</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># IOC rebooted, but no new data available yet; show last row.</span>
+            <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">tail</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">items</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">_update_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span> <span class="n">timestamp</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">timestamp</span> <span class="ow">or</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">pvprop</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata_to_property</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_write_metadata</span><span class="p">(</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_write_metadata_if_changed</span><span class="p">(</span>
                 <span class="n">pvprop</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pvprop</span><span class="o">.</span><span class="n">attr_name</span><span class="p">),</span>
                 <span class="n">value</span><span class="o">=</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">),</span>
                 <span class="n">timestamp</span><span class="o">=</span><span class="n">timestamp</span><span class="p">,</span>
             <span class="p">)</span>
 
-        <span class="n">timestamp</span><span class="p">,</span> <span class="n">row</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">tail</span><span class="p">()</span><span class="o">.</span><span class="n">iterrows</span><span class="p">())[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">async</span> <span class="k">def</span> <span class="nf">_post_new_row</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">row</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Post a single dataframe row to EPICS.</span>
 
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        timestamp : float</span>
+<span class="sd">            Timestamp for all of the records.</span>
+
+<span class="sd">        row : pandas.Series</span>
+<span class="sd">            The table row with information corresponding to the given</span>
+<span class="sd">            timestamp.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">alarm_summary</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">summarize_alarms</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
             <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">overall_alarm</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">alarm_summary</span><span class="p">,</span>
@@ -643,9 +815,19 @@
 
             <span class="n">prop</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prop</span><span class="o">.</span><span class="n">attr_name</span><span class="p">)</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="k">await</span> <span class="n">prop</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">timestamp</span><span class="o">=</span><span class="n">timestamp</span><span class="p">,</span>
-                                 <span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span>
-                                 <span class="n">severity</span><span class="o">=</span><span class="n">severity</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Empty value for key </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+                    <span class="k">await</span> <span class="n">prop</span><span class="o">.</span><span class="n">write_metadata</span><span class="p">(</span>
+                        <span class="n">timestamp</span><span class="o">=</span><span class="n">timestamp</span><span class="p">,</span>
+                        <span class="n">status</span><span class="o">=</span><span class="n">AlarmStatus</span><span class="o">.</span><span class="n">UDF</span><span class="p">,</span>
+                        <span class="n">severity</span><span class="o">=</span><span class="n">AlarmSeverity</span><span class="o">.</span><span class="n">NO_ALARM</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">type_cast</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">prop</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">type_cast</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                    <span class="k">await</span> <span class="n">prop</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">timestamp</span><span class="o">=</span><span class="n">timestamp</span><span class="p">,</span>
+                                     <span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span>
+                                     <span class="n">severity</span><span class="o">=</span><span class="n">severity</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s1">&#39;Failed to update key </span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span>
                                    <span class="n">value</span><span class="p">,</span> <span class="n">ex</span><span class="p">)</span>
@@ -655,9 +837,10 @@
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s1">&#39;Sample Units unavailable?&#39;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_volume</span><span class="o">.</span><span class="n">write_metadata</span><span class="p">(</span><span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">)</span>
-            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_volume</span><span class="o">.</span><span class="n">field_inst</span><span class="o">.</span><span class="n">engineering_units</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
-                <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">units</span><span class="p">):</span>
+                <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_volume</span><span class="o">.</span><span class="n">write_metadata</span><span class="p">(</span><span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">)</span>
+                <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_volume</span><span class="o">.</span><span class="n">field_inst</span><span class="o">.</span><span class="n">engineering_units</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                    <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">)</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_period</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
@@ -750,6 +933,9 @@
 
 
 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Primary command-line entry-point.  Ties together argparse and create_ioc.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">parser</span><span class="p">,</span> <span class="n">split_args</span> <span class="o">=</span> <span class="n">create_parser</span><span class="p">()</span>
     <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
     <span class="n">ioc_options</span><span class="p">,</span> <span class="n">run_options</span> <span class="o">=</span> <span class="n">split_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
