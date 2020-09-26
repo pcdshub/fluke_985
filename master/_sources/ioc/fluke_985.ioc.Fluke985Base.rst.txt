@@ -1,32 +1,455 @@
 ﻿fluke\_985.ioc.Fluke985Base
 ===========================
 
+
 .. currentmodule:: fluke_985.ioc
 
 .. autoclass:: Fluke985Base
 
-   
-   .. automethod:: __init__
+    .. if not using autodoc, add this here: automethod:: __init__
 
-   
-   .. rubric:: Methods
+    
 
-   .. autosummary::
-   
-      ~Fluke985Base.group_read
-      ~Fluke985Base.group_write
-   
-   
+    
 
-   
-   
-   .. rubric:: Attributes
+    
+    
+    .. list-table:: Fluke985Base pvproperties
+        :header-rows: 1
+        :widths: auto
 
-   .. autosummary::
-   
-      ~Fluke985Base.default_values
-      ~Fluke985Base.new_records_available
-      ~Fluke985Base.type_map
-      ~Fluke985Base.type_map_read_only
-   
-   
+        *  - Attribute
+           - Suffix
+           - Docs
+           - Type
+           - Notes
+           - Alarm Group
+    
+        *  - available_records
+           - ``AvailableRecords``
+           - Records available on the Fluke
+           - int (:class:`longin <caproto.server.records.LonginFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - battery_alarm
+           - ``BatteryAlarm``
+           - Battery alarm
+           - int (:class:`longin <caproto.server.records.LonginFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - bootloader_version
+           - ``BootloaderVersion``
+           - 
+           - str (:class:`stringin <caproto.server.records.StringinFields>`)
+           - 
+                 **Read-only**
+                 Length(40)
+           - 
+    
+        *  - cal_alarm
+           - ``CalAlarm``
+           - Calibration alarm
+           - int (:class:`longin <caproto.server.records.LonginFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - calibrated_value
+           - ``CalibratedValue``
+           - 
+           - float (:class:`ai <caproto.server.records.AiFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - concentration_mode
+           - ``ConcentrationMode``
+           - 
+           - str (:class:`stringin <caproto.server.records.StringinFields>`)
+           - 
+                 **Read-only**
+                 Length(40)
+           - 
+    
+        *  - count_alarm
+           - ``CountAlarm``
+           - Count alarm
+           - int (:class:`longin <caproto.server.records.LonginFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - count_mode
+           - ``CountMode``
+           - 
+           - str (:class:`stringin <caproto.server.records.StringinFields>`)
+           - 
+                 **Read-only**
+                 Length(40)
+           - 
+    
+        *  - data_timeout
+           - ``DataTimeout``
+           - 
+           - int (:class:`ai <caproto.server.records.AiFields>`)
+           - 
+           - 
+    
+        *  - firmware_version
+           - ``FirmwareVersion``
+           - 
+           - str (:class:`stringin <caproto.server.records.StringinFields>`)
+           - 
+                 **Read-only**
+                 Length(40)
+           - 
+    
+        *  - flow_alarm
+           - ``FlowAlarm``
+           - Flow alarm
+           - int (:class:`longin <caproto.server.records.LonginFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - hardware_version
+           - ``HardwareVersion``
+           - 
+           - str (:class:`stringin <caproto.server.records.StringinFields>`)
+           - 
+                 **Read-only**
+                 Length(40)
+           - 
+    
+        *  - host
+           - ``Host``
+           - 
+           - str (:class:`stringin <caproto.server.records.StringinFields>`)
+           - 
+                 **Read-only**
+                 Length(60)
+                 **Startup**
+           - 
+    
+        *  - laser_alarm
+           - ``LaserAlarm``
+           - Laser alarm
+           - int (:class:`longin <caproto.server.records.LonginFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - laser_current
+           - ``LaserCurrent``
+           - 
+           - float (:class:`ai <caproto.server.records.AiFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - last_timestamp
+           - ``LastTimestamp``
+           - Latest timestamp from data file
+           - float (:class:`longin <caproto.server.records.LonginFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - location_name
+           - ``LocationName``
+           - Configured location name on device
+           - str (:class:`stringin <caproto.server.records.StringinFields>`)
+           - 
+                 **Read-only**
+                 Length(40)
+           - 
+    
+        *  - model_number
+           - ``ModelNumber``
+           - 
+           - str (:class:`stringin <caproto.server.records.StringinFields>`)
+           - 
+                 **Read-only**
+                 Length(40)
+           - 
+    
+        *  - norm_0_3um
+           - ``Norm0_3um``
+           - 0.3um Normalized to conc. mode volume
+           - float (:class:`ai <caproto.server.records.AiFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - norm_0_5um
+           - ``Norm0_5um``
+           - 0.5um Normalized to conc. mode volume
+           - float (:class:`ai <caproto.server.records.AiFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - norm_10_0um
+           - ``Norm10_0um``
+           - 10.0um Normalized to conc. mode volume
+           - float (:class:`ai <caproto.server.records.AiFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - norm_1_0um
+           - ``Norm1_0um``
+           - 1.0um Normalized to conc. mode volume
+           - float (:class:`ai <caproto.server.records.AiFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - norm_2_0um
+           - ``Norm2_0um``
+           - 2.0um Normalized to conc. mode volume
+           - float (:class:`ai <caproto.server.records.AiFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - norm_5_0um
+           - ``Norm5_0um``
+           - 5.0um Normalized to conc. mode volume
+           - float (:class:`ai <caproto.server.records.AiFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - over_conc_alarm
+           - ``OverConcAlarm``
+           - Over concentration alarm
+           - int (:class:`longin <caproto.server.records.LonginFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - overall_alarm
+           - ``OverallAlarm``
+           - Summed alarm status (cal, flow, etc.)
+           - int (:class:`longin <caproto.server.records.LonginFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - port
+           - ``Port``
+           - 
+           - int (:class:`longin <caproto.server.records.LonginFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - raw_0_3um
+           - ``Raw0_3um``
+           - 0.3um cumulative raw counts
+           - float (:class:`ai <caproto.server.records.AiFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - raw_0_5um
+           - ``Raw0_5um``
+           - 0.5um cumulative raw counts
+           - float (:class:`ai <caproto.server.records.AiFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - raw_10_0um
+           - ``Raw10_0um``
+           - 10.0um cumulative raw counts
+           - float (:class:`ai <caproto.server.records.AiFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - raw_1_0um
+           - ``Raw1_0um``
+           - 1.0um cumulative raw counts
+           - float (:class:`ai <caproto.server.records.AiFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - raw_2_0um
+           - ``Raw2_0um``
+           - 2.0um cumulative raw counts
+           - float (:class:`ai <caproto.server.records.AiFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - raw_5_0um
+           - ``Raw5_0um``
+           - 5.0um cumulative raw counts
+           - float (:class:`ai <caproto.server.records.AiFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - request_timeout
+           - ``RequestTimeout``
+           - 
+           - float (:class:`ai <caproto.server.records.AiFields>`)
+           - 
+           - 
+    
+        *  - sample_mode
+           - ``SampleMode``
+           - Sample mode (e.g., Automatic)
+           - str (:class:`stringin <caproto.server.records.StringinFields>`)
+           - 
+                 **Read-only**
+                 Length(40)
+           - 
+    
+        *  - sample_number
+           - ``SampleNumber``
+           - Sample number index
+           - int (:class:`longin <caproto.server.records.LonginFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - sample_period
+           - ``SamplePeriod``
+           - 
+           - int (:class:`longin <caproto.server.records.LonginFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - sample_volume
+           - ``SampleVolume``
+           - 
+           - float (:class:`ai <caproto.server.records.AiFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - serial_number
+           - ``SerialNumber``
+           - 
+           - str (:class:`stringin <caproto.server.records.StringinFields>`)
+           - 
+                 **Read-only**
+                 Length(40)
+           - 
+    
+        *  - server_state
+           - ``ServerState``
+           - 
+           - str (:class:`stringin <caproto.server.records.StringinFields>`)
+           - 
+                 **Read-only**
+                 Length(40)
+           - 
+    
+        *  - sync_records
+           - ``NumRecords``
+           - Records synchronized from the Fluke
+           - int (:class:`longin <caproto.server.records.LonginFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - system_alarm
+           - ``SystemAlarm``
+           - System alarm
+           - int (:class:`longin <caproto.server.records.LonginFields>`)
+           - 
+                 **Read-only**
+           - 
+    
+        *  - timezone
+           - ``Timezone``
+           - Timezone to use for loading date/time
+           - str (:class:`stringin <caproto.server.records.StringinFields>`)
+           - 
+                 **Read-only**
+                 Length(40)
+           - 
+    
+        *  - update_hook
+           - ``__update_hook__``
+           - 
+           - int 
+           - 
+                 **Read-only**
+                 **Startup**
+           - 
+    
+    
+
+    
+    
+
+    
+    
+    .. rubric:: Methods
+
+    .. autosummary::
+    
+       ~Fluke985Base.group_read
+       ~Fluke985Base.group_write
+    
+    
+
+    
+    
+    .. rubric:: Attributes
+
+    .. autosummary::
+
+    
+       ~Fluke985Base.default_values
+       ~Fluke985Base.new_records_available
+       ~Fluke985Base.type_map
+       ~Fluke985Base.type_map_read_only
+    
+
+    
+    .. rubric:: pvproperty methods
+    .. method:: host.startup(self, instance, async_lib)
+        
+
+    
+    .. literalinclude:: /../../fluke_985/ioc.py
+        :language: python
+        :linenos:
+        :dedent: 4
+        :lineno-start: 78
+        :lines: 78-81
+    .. method:: update_hook.startup(self, instance, async_lib)
+        
+
+    
+    .. raw:: html
+
+        <details>
+        <summary>Source code: update_hook.startup</summary>
+
+    
+    .. literalinclude:: /../../../../../miniconda/envs/testenv/lib/python3.8/site-packages/caproto/server/server.py
+        :language: python
+        :linenos:
+        :dedent: 0
+        :lineno-start: 583
+        :lines: 583-612
+
+    .. raw:: html
+
+        </details>
+        <br/>
+
+    

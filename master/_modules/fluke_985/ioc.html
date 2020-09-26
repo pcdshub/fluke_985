@@ -191,10 +191,10 @@
 <span class="sd">        Name for the group, defaults to the class name.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="Fluke985Base.__init__"><a class="viewcode-back" href="../../ioc/fluke_985.ioc.Fluke985Base.html#fluke_985.Fluke985Base.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_default_host</span> <span class="o">=</span> <span class="n">host</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_consecutive_timeouts</span> <span class="o">=</span> <span class="mi">0</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_consecutive_timeouts</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="n">host</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
         <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
