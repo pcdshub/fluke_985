@@ -1,0 +1,32 @@
+﻿fluke\_985.ioc.Fluke985Base
+===========================
+
+.. currentmodule:: fluke_985.ioc
+
+.. autoclass:: Fluke985Base
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~Fluke985Base.group_read
+      ~Fluke985Base.group_write
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~Fluke985Base.default_values
+      ~Fluke985Base.new_records_available
+      ~Fluke985Base.type_map
+      ~Fluke985Base.type_map_read_only
+   
+   

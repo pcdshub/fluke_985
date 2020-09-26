@@ -172,7 +172,7 @@
 <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">comm</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">util</span>  <span class="c1"># noqa</span>
 
 
-<div class="viewcode-block" id="Fluke985Base"><a class="viewcode-back" href="../../api.html#fluke_985.ioc.Fluke985Base">[docs]</a><span class="k">class</span> <span class="nc">Fluke985Base</span><span class="p">(</span><span class="n">PVGroup</span><span class="p">):</span>
+<div class="viewcode-block" id="Fluke985Base"><a class="viewcode-back" href="../../ioc/fluke_985.ioc.Fluke985Base.html#fluke_985.Fluke985Base">[docs]</a><span class="k">class</span> <span class="nc">Fluke985Base</span><span class="p">(</span><span class="n">PVGroup</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Base class for the Fluke985 IOC.</span>
 
@@ -191,10 +191,10 @@
 <span class="sd">        Name for the group, defaults to the class name.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="Fluke985Base.__init__"><a class="viewcode-back" href="../../ioc/fluke_985.ioc.Fluke985Base.html#fluke_985.Fluke985Base.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_default_host</span> <span class="o">=</span> <span class="n">host</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_consecutive_timeouts</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_consecutive_timeouts</span> <span class="o">=</span> <span class="mi">0</span></div>
 
     <span class="n">host</span> <span class="o">=</span> <span class="n">pvproperty</span><span class="p">(</span>
         <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
@@ -862,7 +862,7 @@
         <span class="c1"># and optional e-mail?</span>
 
 
-<div class="viewcode-block" id="create_ioc"><a class="viewcode-back" href="../../api.html#fluke_985.ioc.create_ioc">[docs]</a><span class="k">def</span> <span class="nf">create_ioc</span><span class="p">(</span><span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+<div class="viewcode-block" id="create_ioc"><a class="viewcode-back" href="../../api.html#fluke_985.create_ioc">[docs]</a><span class="k">def</span> <span class="nf">create_ioc</span><span class="p">(</span><span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
                <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
                <span class="n">autosave</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
                <span class="o">**</span><span class="n">ioc_options</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Fluke985Base</span><span class="p">:</span>

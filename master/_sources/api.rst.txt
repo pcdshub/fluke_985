@@ -9,14 +9,13 @@ IOC
 ---
 
 
-.. currentmodule:: fluke_985.ioc
+.. currentmodule:: fluke_985
 
-.. autoclass:: Fluke985Base
-    :inherited-members:
-    :exclude-members:
+.. autosummary::
+    :toctree: ioc
 
-    .. pvgroup:: fluke_985.Fluke985Base
-
+    ioc
+    ~ioc.Fluke985Base
 
 
 ---------
